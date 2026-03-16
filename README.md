@@ -48,7 +48,7 @@ A short demo video of the platform will be added soon.
 
 🔐 Login Interface
 
-[Login](screenshots/login.png)
+![Login](screenshots/login.png)
 
 📝 Registration Page
 
@@ -57,7 +57,7 @@ A short demo video of the platform will be added soon.
 
 ⚙️ Settings & User Preferences
 
-![Settings](screenshots/settings.png)
+![Settings](screenshots/setting.png)
 
 ---
 
