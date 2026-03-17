@@ -1,328 +1,230 @@
 import React, { useState, useEffect, useContext } from "react";
-import Card from "../components/ui/Card";
 import { ThemeContext } from "../context/ThemeContext";
+import { Save, User, Shield, Bell, Zap, Trash2 } from "lucide-react";
 
 const Settings = () => {
-
-const { darkMode, setDarkMode } = useContext(ThemeContext);
-
-const [settings,setSettings]=useState({
- aiSuggestions:true,
- predictiveInsights:true,
- energyLimit:500,
- waterLimit:200,
- energyAlerts:true,
- waterAlerts:true,
- weeklyReports:false,
- sustainabilityGoal:20
-});
-
-const [loading,setLoading]=useState(true);
-
-useEffect(()=>{
-
-fetch("http://localhost:5000/api/settings",{
- headers:{
-  Authorization:`Bearer ${localStorage.getItem("token")}`
- }
-})
-.then(res=>res.json())
-.then(data=>{
- setSettings(data)
- setDarkMode(data.darkMode)
- setLoading(false)
-})
-
-},[])
-
-const saveSettings=async()=>{
-
-await fetch("http://localhost:5000/api/settings",{
-
- method:"PUT",
-
- headers:{
-  "Content-Type":"application/json",
-  Authorization:`Bearer ${localStorage.getItem("token")}`
- },
-
- body:JSON.stringify(settings)
-
-})
-
-alert("Settings updated successfully")
-
-}
-
-if(loading) return <div className="text-center">Loading Settings...</div>
-
-return(
-
-<div className="space-y-8">
-
-{/* Header */}
-
-<div>
-
-<h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-System Settings
-</h1>
-
-<p className="text-gray-600 dark:text-gray-400 mt-1">
-Manage your sustainability platform configuration
-</p>
-
-</div>
-
-
-{/* Profile */}
-
-<Card>
-
-<h3 className="text-lg font-semibold mb-6">
-Profile Preferences
-</h3>
-
-<div className="grid md:grid-cols-2 gap-4">
-
-<input
-type="text"
-placeholder="Full Name"
-className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-lg"
-/>
-
-<input
-type="email"
-placeholder="Email Address"
-className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-lg"
-/>
-
-</div>
-
-</Card>
-
-
-{/* AI System */}
-
-<Card>
-
-<h3 className="text-lg font-semibold mb-6">
-AI Intelligence System
-</h3>
-
-<div className="space-y-4">
-
-<label className="flex justify-between">
-
-Enable AI Suggestions
-
-<input
-type="checkbox"
-checked={settings.aiSuggestions}
-onChange={(e)=>setSettings({...settings,aiSuggestions:e.target.checked})}
-/>
-
-</label>
-
-<label className="flex justify-between">
-
-Predictive Analytics
-
-<input
-type="checkbox"
-checked={settings.predictiveInsights}
-onChange={(e)=>setSettings({...settings,predictiveInsights:e.target.checked})}
-/>
-
-</label>
-
-</div>
-
-</Card>
-
-
-{/* Sustainability Goals */}
-
-<Card>
-
-<h3 className="text-lg font-semibold mb-6">
-Sustainability Goals
-</h3>
-
-<input
-type="number"
-value={settings.sustainabilityGoal}
-onChange={(e)=>setSettings({...settings,sustainabilityGoal:e.target.value})}
-className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-lg"
-/>
-
-<p className="text-sm text-gray-500 mt-2">
-Target percentage reduction in energy consumption
-</p>
-
-</Card>
-
-
-{/* Monitoring Threshold */}
-
-<Card>
-
-<h3 className="text-lg font-semibold mb-6">
-Monitoring Thresholds
-</h3>
-
-<div className="grid md:grid-cols-2 gap-4">
-
-<input
-type="number"
-value={settings.energyLimit}
-onChange={(e)=>setSettings({...settings,energyLimit:e.target.value})}
-className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-lg"
-/>
-
-<input
-type="number"
-value={settings.waterLimit}
-onChange={(e)=>setSettings({...settings,waterLimit:e.target.value})}
-className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-lg"
-/>
-
-</div>
-
-</Card>
-
-
-{/* Notifications */}
-
-<Card>
-
-<h3 className="text-lg font-semibold mb-6">
-Alert Notifications
-</h3>
-
-<div className="space-y-4">
-
-<label className="flex justify-between">
-
-Energy Alerts
-
-<input
-type="checkbox"
-checked={settings.energyAlerts}
-onChange={(e)=>setSettings({...settings,energyAlerts:e.target.checked})}
-/>
-
-</label>
-
-<label className="flex justify-between">
-
-Water Leakage Alerts
-
-<input
-type="checkbox"
-checked={settings.waterAlerts}
-onChange={(e)=>setSettings({...settings,waterAlerts:e.target.checked})}
-/>
-
-</label>
-
-<label className="flex justify-between">
-
-Weekly Sustainability Reports
-
-<input
-type="checkbox"
-checked={settings.weeklyReports}
-onChange={(e)=>setSettings({...settings,weeklyReports:e.target.checked})}
-/>
-
-</label>
-
-</div>
-
-</Card>
-
-
-{/* Theme */}
-
-<Card>
-
-<h3 className="text-lg font-semibold mb-6">
-Theme Preferences
-</h3>
-
-<div className="flex justify-between">
-
-Dark Mode
-
-<input
-type="checkbox"
-checked={darkMode}
-onChange={(e)=>{
-
- setDarkMode(e.target.checked)
-
- setSettings({...settings,darkMode:e.target.checked})
-
-}}
-/>
-
-</div>
-
-</Card>
-
-
-{/* Data Management */}
-
-<Card>
-
-<h3 className="text-lg font-semibold mb-6">
-Data Management
-</h3>
-
-<div className="flex gap-4">
-
-<button className="bg-blue-500 text-white px-4 py-2 rounded-lg">
-Export Data
-</button>
-
-<button className="bg-yellow-500 text-black px-4 py-2 rounded-lg">
-Clear AI Chat
-</button>
-
-</div>
-
-</Card>
-
-
-{/* Danger Zone */}
-
-<Card className="border border-red-400">
-
-<h3 className="text-lg text-red-500 font-semibold mb-4">
-Danger Zone
-</h3>
-
-<button className="bg-red-500 text-white px-4 py-2 rounded-lg">
-Delete Account
-</button>
-
-</Card>
-
-
-<button
-onClick={saveSettings}
-className="bg-primary text-black px-6 py-2 rounded-lg hover:scale-105 transition"
->
-
-Save All Settings
-
-</button>
-
-</div>
-
-)
-
-}
-
-export default Settings
+  const { darkMode, setDarkMode } = useContext(ThemeContext);
+
+  const [settings, setSettings] = useState({
+    name: "",
+    email: "",
+    aiSuggestions: true,
+    predictiveInsights: true,
+    energyLimit: 500,
+    waterLimit: 200,
+    energyAlerts: true,
+    waterAlerts: true,
+    weeklyReports: false,
+    sustainabilityGoal: 20,
+    darkMode: false,
+  });
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/settings", {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setSettings(data);
+        setDarkMode(data.darkMode);
+        setLoading(false);
+      });
+  }, []);
+
+  const handleChange = (key, value) => {
+    setSettings({ ...settings, [key]: value });
+  };
+
+  const saveSettings = async () => {
+    await fetch("http://localhost:5000/api/settings", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify(settings),
+    });
+
+    alert("✅ Settings Saved");
+  };
+
+  if (loading) return <div className="text-center mt-10">Loading...</div>;
+
+  const cardStyle = `p-6 rounded-2xl shadow-md transition ${
+    darkMode
+      ? "bg-gray-900 text-white border border-gray-700"
+      : "bg-white text-black border border-gray-200"
+  }`;
+
+  const inputStyle = `w-full p-3 rounded-lg outline-none ${
+    darkMode
+      ? "bg-gray-800 text-white border border-gray-700"
+      : "bg-gray-100 border border-gray-300"
+  }`;
+
+  const toggle = (value, onChange) => (
+    <div
+      onClick={() => onChange(!value)}
+      className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition ${
+        value ? "bg-green-500" : "bg-gray-400"
+      }`}
+    >
+      <div
+        className={`w-4 h-4 bg-white rounded-full transform transition ${
+          value ? "translate-x-6" : ""
+        }`}
+      />
+    </div>
+  );
+
+  return (
+    <div className="space-y-8 pb-10">
+
+      {/* HEADER */}
+      <div>
+        <h1 className="text-3xl font-bold">⚙️ Settings</h1>
+        <p className="text-gray-500 dark:text-gray-400">
+          Manage your account and sustainability preferences
+        </p>
+      </div>
+
+      {/* PROFILE */}
+      <div className={cardStyle}>
+        <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
+          <User size={18} /> Profile
+        </h2>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <input
+            placeholder="Full Name"
+            value={settings.name}
+            onChange={(e) => handleChange("name", e.target.value)}
+            className={inputStyle}
+          />
+          <input
+            placeholder="Email"
+            value={settings.email}
+            onChange={(e) => handleChange("email", e.target.value)}
+            className={inputStyle}
+          />
+        </div>
+      </div>
+
+      {/* AI SETTINGS */}
+      <div className={cardStyle}>
+        <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
+          <Zap size={18} /> AI System
+        </h2>
+
+        <div className="space-y-4">
+          <div className="flex justify-between">
+            <span>AI Suggestions</span>
+            {toggle(settings.aiSuggestions, (v) =>
+              handleChange("aiSuggestions", v)
+            )}
+          </div>
+
+          <div className="flex justify-between">
+            <span>Predictive Insights</span>
+            {toggle(settings.predictiveInsights, (v) =>
+              handleChange("predictiveInsights", v)
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* THRESHOLDS */}
+      <div className={cardStyle}>
+        <h2 className="text-xl font-semibold mb-4">📊 Monitoring Limits</h2>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <input
+            type="number"
+            value={settings.energyLimit}
+            onChange={(e) => handleChange("energyLimit", e.target.value)}
+            className={inputStyle}
+            placeholder="Energy Limit"
+          />
+          <input
+            type="number"
+            value={settings.waterLimit}
+            onChange={(e) => handleChange("waterLimit", e.target.value)}
+            className={inputStyle}
+            placeholder="Water Limit"
+          />
+        </div>
+      </div>
+
+      {/* NOTIFICATIONS */}
+      <div className={cardStyle}>
+        <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
+          <Bell size={18} /> Notifications
+        </h2>
+
+        <div className="space-y-4">
+          <div className="flex justify-between">
+            Energy Alerts
+            {toggle(settings.energyAlerts, (v) =>
+              handleChange("energyAlerts", v)
+            )}
+          </div>
+
+          <div className="flex justify-between">
+            Water Alerts
+            {toggle(settings.waterAlerts, (v) =>
+              handleChange("waterAlerts", v)
+            )}
+          </div>
+
+          <div className="flex justify-between">
+            Weekly Reports
+            {toggle(settings.weeklyReports, (v) =>
+              handleChange("weeklyReports", v)
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* THEME */}
+      <div className={cardStyle}>
+        <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
+          <Shield size={18} /> Theme
+        </h2>
+
+        <div className="flex justify-between">
+          Dark Mode
+          {toggle(darkMode, (v) => {
+            setDarkMode(v);
+            handleChange("darkMode", v);
+          })}
+        </div>
+      </div>
+
+      {/* DANGER */}
+      <div className="p-6 rounded-2xl border border-red-500 bg-red-50 dark:bg-red-900/20">
+        <h2 className="flex items-center gap-2 text-red-500 text-lg font-semibold mb-3">
+          <Trash2 size={18} /> Danger Zone
+        </h2>
+
+        <button className="bg-red-500 text-white px-4 py-2 rounded-lg">
+          Delete Account
+        </button>
+      </div>
+
+      {/* SAVE BUTTON */}
+      <button
+        onClick={saveSettings}
+        className="flex items-center gap-2 bg-primary px-6 py-3 rounded-xl font-semibold hover:scale-105 transition"
+      >
+        <Save size={16} />
+        Save Changes
+      </button>
+    </div>
+  );
+};
+
+export default Settings;
