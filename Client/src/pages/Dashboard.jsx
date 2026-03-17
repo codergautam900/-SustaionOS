@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import io from "socket.io-client";
+
 import SustainabilityGauge from "../components/dashboard/SustainabilityGauge";
 import LiveStats from "../components/dashboard/LiveStats";
 import Card from "../components/ui/Card";
@@ -8,27 +10,38 @@ import SuggestionsPanel from "../components/dashboard/SuggestionsPanel";
 import DashboardSkeleton from "../components/skeleton/DashboardSkeleton";
 import AIChatWidget from "../components/ai/AIChatWidget";
 
+const socket = io("http://localhost:5000");
+
 const Dashboard = () => {
 
   const [loading, setLoading] = useState(true);
+
   const [history, setHistory] = useState([]);
   const [latest, setLatest] = useState(null);
   const [scoreData, setScoreData] = useState(null);
+  const [alerts, setAlerts] = useState([]);
 
-  // 🔥 FETCH REAL DATA
+  const [lastUpdated, setLastUpdated] = useState(null);
+
+  // 🔥 FETCH INITIAL DATA
   const fetchDashboard = async () => {
     try {
-      const [historyRes, scoreRes] = await Promise.all([
+      const [historyRes, scoreRes, alertsRes] = await Promise.all([
         fetch("http://localhost:5000/api/data/history"),
-        fetch("http://localhost:5000/api/score")
+        fetch("http://localhost:5000/api/score"),
+        fetch("http://localhost:5000/api/alerts"),
       ]);
 
       const historyJson = await historyRes.json();
       const scoreJson = await scoreRes.json();
+      const alertsJson = await alertsRes.json();
 
       setHistory(historyJson);
-      setLatest(historyJson[0]); // latest record
+      setLatest(historyJson[0]);
       setScoreData(scoreJson);
+      setAlerts(alertsJson);
+
+      setLastUpdated(new Date());
 
     } catch (err) {
       console.error("Dashboard error:", err);
@@ -37,60 +50,77 @@ const Dashboard = () => {
     }
   };
 
+  // 🔥 SOCKET REAL-TIME
   useEffect(() => {
+
     fetchDashboard();
 
-    // 🔥 AUTO REFRESH
-    const interval = setInterval(fetchDashboard, 5000);
-    return () => clearInterval(interval);
+    socket.on("newData", (data) => {
+      setHistory(prev => [data, ...prev]);
+      setLatest(data);
+      setLastUpdated(new Date());
+    });
+
+    socket.on("newAlert", (alert) => {
+      setAlerts(prev => [alert, ...prev]);
+    });
+
+    return () => {
+      socket.off("newData");
+      socket.off("newAlert");
+    };
+
   }, []);
 
   if (loading || !latest || !scoreData) return <DashboardSkeleton />;
 
-  // 🔥 SMART INSIGHTS
+  // 🔥 SMART AI INSIGHTS
   const energyInsight =
     latest.energy > 400
-      ? "⚠️ High energy consumption detected. Optimize heavy appliances."
-      : "✅ Energy usage is optimal.";
+      ? "⚠️ High energy consumption detected. Shift heavy appliances to off-peak hours."
+      : "✅ Energy usage is optimized and within safe limits.";
 
   const waterInsight =
     latest.water > 2000
-      ? "⚠️ Water usage is high. Possible leakage or inefficiency."
-      : "✅ Water usage is efficient.";
+      ? "⚠️ Water usage spike detected. Possible leakage or inefficiency."
+      : "✅ Water consumption is efficient and controlled.";
 
   return (
     <div className="space-y-8 animate-fadeIn">
 
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Dashboard Overview
+            Smart Sustainability Dashboard
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Real-time AI sustainability system
+            Real-time AI-powered monitoring & optimization system
           </p>
         </div>
 
         <div className="text-sm text-gray-500 dark:text-gray-400">
           Last Updated:
           <span className="ml-2 font-semibold text-gray-900 dark:text-white">
-            {new Date().toLocaleTimeString()}
+            {lastUpdated ? lastUpdated.toLocaleTimeString() : "--"}
           </span>
         </div>
+
       </div>
 
       {/* TOP GRID */}
       <div className="grid grid-cols-12 gap-6">
 
-        {/* SCORE */}
         <div className="col-span-12 md:col-span-4">
           <SustainabilityGauge score={scoreData.score} />
         </div>
 
-        {/* LIVE STATS */}
         <div className="col-span-12 md:col-span-8">
-          <LiveStats water={latest.water} energy={latest.energy} />
+          <LiveStats
+            water={latest.water}
+            energy={latest.energy}
+          />
         </div>
 
       </div>
@@ -100,11 +130,11 @@ const Dashboard = () => {
         <EnergyWaterCharts data={history} />
       </div>
 
-      {/* ALERTS + SUGGESTIONS */}
+      {/* ALERTS + AI SUGGESTIONS */}
       <div className="grid grid-cols-12 gap-6">
 
         <div className="col-span-12 lg:col-span-6">
-          <AlertsPanel />
+          <AlertsPanel alerts={alerts} />
         </div>
 
         <div className="col-span-12 lg:col-span-6">
@@ -119,7 +149,7 @@ const Dashboard = () => {
         <div className="col-span-12 md:col-span-6">
           <Card className="hover:scale-[1.03] transition shadow-xl border border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">
-              ⚡ Energy Insight
+              ⚡ Energy Intelligence
             </h3>
             <p className="text-gray-600 dark:text-gray-400 text-sm">
               {energyInsight}
@@ -130,7 +160,7 @@ const Dashboard = () => {
         <div className="col-span-12 md:col-span-6">
           <Card className="hover:scale-[1.03] transition shadow-xl border border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">
-              💧 Water Insight
+              💧 Water Intelligence
             </h3>
             <p className="text-gray-600 dark:text-gray-400 text-sm">
               {waterInsight}
@@ -140,7 +170,7 @@ const Dashboard = () => {
 
       </div>
 
-      {/* AI CHAT */}
+      {/* FLOATING AI CHAT */}
       <AIChatWidget />
 
     </div>
