@@ -12,6 +12,7 @@ import Register from "../pages/Register";
 
 import PageWrapper from "../components/layout/PageWrapper";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
+import Profile from "../pages/Profile";
 
 const AppRoutes = () => {
   return (
@@ -78,6 +79,9 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
+
+      <Route path="/profile" element={<Profile />} />
 
     </Routes>
   );

@@ -5,23 +5,20 @@ import { AuthContext } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const Header = ({ setIsOpen }) => {
-
   const { darkMode, setDarkMode } = useContext(ThemeContext);
   const { user, logout } = useContext(AuthContext);
-
   const navigate = useNavigate();
 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   return (
     <header
-      className={`h-16 flex items-center justify-between px-4 md:px-6 border-b transition-colors duration-300
-      ${darkMode ? "bg-cardBg border-gray-800" : "bg-white border-gray-300"}`}
+      className={`h-16 flex items-center justify-between px-4 md:px-6
+      backdrop-blur-xl bg-white/70 dark:bg-gray-900/70
+      border-b border-white/20 dark:border-gray-700 shadow-md`}
     >
-      {/* Left Section */}
+      {/* LEFT */}
       <div className="flex items-center gap-4">
-
-        {/* Mobile Menu */}
         <Menu
           className={`cursor-pointer lg:hidden ${
             darkMode ? "text-white" : "text-black"
@@ -29,88 +26,76 @@ const Header = ({ setIsOpen }) => {
           onClick={() => setIsOpen(true)}
         />
 
-        {/* Logo */}
-        <h1
-          className={`text-xl font-semibold ${
-            darkMode ? "text-white" : "text-black"
-          }`}
-        >
-          Sustain<span className="text-primary">OS</span>
+        <h1 className="text-xl font-bold tracking-wide">
+          <span className="text-primary">Sustain</span>OS
         </h1>
       </div>
 
-      {/* Right Section */}
-      <div className="flex items-center gap-4 relative">
+      {/* RIGHT */}
+      <div className="flex items-center gap-5 relative">
 
-        {/* Notification */}
-        <Bell
-          className={`cursor-pointer transition hover:text-primary ${
-            darkMode ? "text-gray-400" : "text-gray-600"
-          }`}
-        />
+        {/* 🔔 Notification */}
+        <div className="relative cursor-pointer">
+          <Bell className="text-gray-600 dark:text-gray-300 hover:text-primary transition" />
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] px-1.5 rounded-full">
+            3
+          </span>
+        </div>
 
-        {/* User Dropdown */}
+        {/* 👤 USER */}
         <div className="relative">
 
+          {/* Trigger */}
           <div
-            className="flex items-center gap-1 cursor-pointer select-none"
             onClick={() => setUserMenuOpen(!userMenuOpen)}
+            className="flex items-center gap-2 cursor-pointer px-2 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition"
           >
-            <User
-              className={`${
-                darkMode ? "text-gray-400" : "text-gray-600"
-              } transition`}
-            />
+            {/* Avatar */}
+            <div className="w-8 h-8 flex items-center justify-center rounded-full bg-primary text-black font-bold">
+              {user?.name ? user.name[0].toUpperCase() : "U"}
+            </div>
 
-            <ChevronDown
-              size={16}
-              className={`${
-                darkMode ? "text-gray-400" : "text-gray-600"
-              } transition`}
-            />
+            {/* Name */}
+            <span className="text-sm hidden md:block">
+              {user?.name || "User"}
+            </span>
+
+            <ChevronDown size={16} />
           </div>
 
+          {/* Dropdown */}
           {userMenuOpen && (
-            <div
-              className="absolute right-0 mt-2 w-40 bg-white dark:bg-cardBg border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg z-50"
-            >
+            <div className="absolute right-0 mt-3 w-48 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden animate-fadeIn">
 
-              {user ? (
-                <>
-                  <button
-                    className="w-full text-left px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-t-lg"
-                  >
-                    Profile
-                  </button>
+              {/* Profile */}
+              <button
+                onClick={() => {
+                  navigate("/profile");
+                  setUserMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+              >
+                👤 Profile
+              </button>
 
-                  <button
-                    className="w-full text-left px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-b-lg"
-                    onClick={() => {
-                      logout();
-                      setUserMenuOpen(false);
-                      navigate("/login");
-                    }}
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <button
-                  className="w-full text-left px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg"
-                  onClick={() => {
-                    navigate("/login");
-                    setUserMenuOpen(false);
-                  }}
-                >
-                  Login
-                </button>
-              )}
+              {/* Divider */}
+              <div className="border-t border-gray-300 dark:border-gray-700"></div>
 
+              {/* Logout */}
+              <button
+                onClick={() => {
+                  logout();
+                  navigate("/login");
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-red-500 hover:text-white transition"
+              >
+                🚪 Logout
+              </button>
             </div>
           )}
         </div>
 
-        {/* Dark Mode Toggle */}
+        {/* 🌙 Dark Mode Toggle */}
         <button
           onClick={() => setDarkMode(!darkMode)}
           className={`w-12 h-6 flex items-center rounded-full p-1 transition ${

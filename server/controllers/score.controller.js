@@ -1,6 +1,6 @@
 const Data=require("../models/Data");
 const Alert=require("../models/Alert");
-const calc=require("../services/score.service").calculateScore;
+const calc=require("../services/sustainabilityScore").calculateScore;
 
 exports.getScore=async(req,res)=>{
  const records=await Data.find();

@@ -1,6 +1,6 @@
 const Data = require("../models/Data");
 
-const scoreService = require("../services/score.service");
+const scoreService = require("../services/sustainabilityScore.engine");
 const historyService = require("../services/history.service");
 
 
