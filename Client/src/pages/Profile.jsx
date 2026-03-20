@@ -14,8 +14,7 @@ const Profile = () => {
   const { darkMode, setDarkMode } = useContext(ThemeContext);
   const navigate = useNavigate();
 
-  const token = localStorage.getItem("token");
-
+  const [token, setToken] = useState(null); // ✅ store token state
   const [form, setForm] = useState({ building: "", water: "", energy: "" });
   const [profileForm, setProfileForm] = useState({ name: "", building: "" });
   const [loading, setLoading] = useState(false);
@@ -29,7 +28,13 @@ const Profile = () => {
   });
   const [history, setHistory] = useState([]);
 
-  // Sync profileForm with user after fetch/login
+  // Get token from localStorage on mount
+  useEffect(() => {
+    const t = localStorage.getItem("token");
+    setToken(t || null);
+  }, []);
+
+  // Sync profileForm with user
   useEffect(() => {
     if (user) {
       setProfileForm({
@@ -39,9 +44,10 @@ const Profile = () => {
     }
   }, [user]);
 
-  // 🔥 Fetch profile + stats + history
+  // Fetch profile, stats, history
   useEffect(() => {
     const fetchData = async () => {
+      if (!token) return;
       try {
         const [profileRes, statsRes, historyRes] = await Promise.all([
           fetch(`${API}/api/user/profile`, {
@@ -85,8 +91,7 @@ const Profile = () => {
         setPageLoading(false);
       }
     };
-
-    if (token) fetchData();
+    fetchData();
   }, [token, setUser]);
 
   // INPUT HANDLERS
@@ -94,7 +99,6 @@ const Profile = () => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
-
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
     setProfileForm((prev) => ({ ...prev, [name]: value }));
@@ -104,7 +108,6 @@ const Profile = () => {
   const toggleTheme = async () => {
     const newMode = !darkMode;
     setDarkMode(newMode);
-
     try {
       await fetch(`${API}/api/settings`, {
         method: "PUT",
@@ -123,9 +126,7 @@ const Profile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.building) return toast.error("Building required");
-
     setLoading(true);
-
     try {
       const res = await fetch(`${API}/api/data`, {
         method: "POST",
@@ -139,10 +140,8 @@ const Profile = () => {
           energy: Number(form.energy),
         }),
       });
-
       const data = await res.json();
       if (!res.ok) return toast.error(data.msg);
-
       toast.success("Data submitted");
       setForm({ building: "", water: "", energy: "" });
       setHistory((prev) => [
@@ -152,15 +151,14 @@ const Profile = () => {
     } catch {
       toast.error("Server error");
     }
-
     setLoading(false);
   };
 
-  // UPDATE PROFILE
+  // UPDATE PROFILE ✅ fixed token handling
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
+    if (!token) return toast.error("User not logged in");
     setLoading(true);
-
     try {
       const res = await fetch(`${API}/api/user/update`, {
         method: "PATCH",
@@ -170,18 +168,16 @@ const Profile = () => {
         },
         body: JSON.stringify(profileForm),
       });
-
       const data = await res.json();
       if (!res.ok) return toast.error(data.msg);
-
       toast.success("Profile updated successfully");
       setUser({ ...data.user, token });
       setProfileForm(data.user);
       localStorage.setItem("user", JSON.stringify(data.user));
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast.error("Update failed");
     }
-
     setLoading(false);
   };
 
