@@ -1,4 +1,3 @@
-// ...existing code...
 import React, { useContext, useMemo } from "react";
 import Card from "../ui/Card";
 import {
@@ -12,7 +11,7 @@ import {
 } from "recharts";
 import { ThemeContext } from "../../context/ThemeContext";
 
-// Format data
+// Format data - robust, tolerate different shapes and already-formatted input
 const formatData = (data = []) => {
   if (!Array.isArray(data)) return [];
 
@@ -22,27 +21,38 @@ const formatData = (data = []) => {
     .map((item) => {
       if (!item) return null;
 
-      // Accept common date keys; prefer createdAt -> timestamp -> time -> date
-      const date = item.createdAt ?? item.timestamp ?? item.time ?? item.date;
-      if (!date) {
-        if (!warned.missing) {
-          console.warn("Some entries missing date were skipped.");
-          warned.missing = true;
-        }
+      // If already formatted (used earlier), return as-is (ensure numbers)
+      if (item.name && item.time) {
+        return {
+          ...item,
+          energy: Number(item.energy) || 0,
+          water: Number(item.water) || 0,
+        };
+      }
+
+      // accept many date keys
+      const rawDate = item.createdAt ?? item.timestamp ?? item.time ?? item.date ?? item.label ?? item.label;
+      if (rawDate == null) {
+        if (!warned.missing) { console.warn("Some entries missing date were skipped."); warned.missing = true; }
         return null;
       }
 
-      const parsedDate = new Date(date);
+      // handle numeric epoch (seconds or ms) and strings
+      let parsedDate;
+      if (typeof rawDate === "number") {
+        // if seconds (10 digits) convert to ms
+        parsedDate = rawDate < 1e12 ? new Date(rawDate * 1000) : new Date(rawDate);
+      } else {
+        parsedDate = new Date(String(rawDate));
+      }
+
       if (isNaN(parsedDate.getTime())) {
-        if (!warned.invalid) {
-          console.warn("Some entries have invalid dates and were skipped:", date);
-          warned.invalid = true;
-        }
+        if (!warned.invalid) { console.warn("Some entries have invalid dates and were skipped:", rawDate); warned.invalid = true; }
         return null;
       }
 
-      const energyVal = Number(item.energy);
-      const waterVal = Number(item.water);
+      const energyVal = Number(item.energy ?? item.energy_kwh ?? 0);
+      const waterVal = Number(item.water ?? item.water_liters ?? 0);
 
       return {
         name: parsedDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
@@ -70,8 +80,7 @@ const ValueDot = ({ cx, cy, payload, dataKey, color }) => {
 
 const ChartCard = ({ title, dataKey, color, data }) => {
   const { darkMode } = useContext(ThemeContext);
-  // data is expected to be already formatted by parent
-  const chartData = useMemo(() => (Array.isArray(data) ? data : []), [data]);
+  const chartData = useMemo(() => formatData(data), [data]);
 
   return (
     <Card className="h-80 md:h-96 flex flex-col hover:scale-[1.02] transition-all duration-300 shadow-xl border border-gray-200 dark:border-gray-800">
@@ -128,4 +137,3 @@ const EnergyWaterCharts = ({ data = [] }) => {
 };
 
 export default EnergyWaterCharts;
-// ...existing code...

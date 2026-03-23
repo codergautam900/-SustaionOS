@@ -1,4 +1,3 @@
-// src/pages/Analytics.jsx
 import React, { useContext, useState, useEffect } from "react";
 import Card from "../components/ui/Card";
 import {
@@ -16,39 +15,47 @@ const Analytics = () => {
   const [period, setPeriod] = useState("6"); // default last 6 months
   const [error, setError] = useState("");
 
+  const normalizeTrendArray = (raw) => {
+    const arr = Array.isArray(raw) ? raw
+      : Array.isArray(raw?.data) ? raw.data
+      : Array.isArray(raw?.trend) ? raw.trend
+      : [];
+    return arr.map(item => {
+      const dateVal = item?.date ?? item?.createdAt ?? item?.timestamp ?? item?.time ?? item?.label ?? null;
+      const parsed = dateVal ? new Date(dateVal) : null;
+      const label = parsed && !isNaN(parsed.getTime())
+        ? parsed.toLocaleDateString("en-IN", { day: "numeric", month: "short" })
+        : (item?.label ?? "Unknown");
+      return {
+        date: label,
+        energy: Number(item?.energy ?? item?.energy_kwh ?? 0) || 0,
+        water: Number(item?.water ?? item?.water_liters ?? 0) || 0,
+        rawTime: parsed && !isNaN(parsed.getTime()) ? parsed.getTime() : null,
+      };
+    }).sort((a, b) => (a.rawTime || 0) - (b.rawTime || 0));
+  };
+
   const fetchAnalytics = async (selectedPeriod = period) => {
     setLoading(true);
     setError("");
     try {
-      // Summary
-      const summaryRes = await fetch(`/api/analytics/summary?period=${selectedPeriod}`);
-      const summaryJson = await summaryRes.json();
-      if(summaryJson.msg) {
-        setSummary({});
-      } else {
-        setSummary(summaryJson);
-      }
+      const doFetch = async (url) => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`${url} returned ${res.status}`);
+        return await res.json();
+      };
 
-      // Score
-      const scoreRes = await fetch(`/api/analytics/score`);
-      const scoreJson = await scoreRes.json();
-      setScoreData(scoreJson || { score: 0, usage: { energy:0, water:0 } });
+      const summaryJson = await doFetch(`/api/analytics/summary?period=${selectedPeriod}`);
+      // handle various shapes
+      setSummary(summaryJson?.summary ?? summaryJson ?? {});
 
-      // Trend
-      const trendRes = await fetch(`/api/analytics/trend?period=${selectedPeriod}`);
-      const trendJson = await trendRes.json();
+      const scoreJson = await doFetch(`/api/analytics/score`);
+      setScoreData(scoreJson ?? { score: 0, usage: { energy: 0, water: 0 } });
 
-      if (!Array.isArray(trendJson) || trendJson.length === 0) {
-        setTrendData([]);
-      } else {
-        const formattedTrend = trendJson.map(item => ({
-          date: item.date || item.timestamp, // backend date field
-          energy: item.energy || 0,
-          water: item.water || 0,
-        }));
-        setTrendData(formattedTrend);
-      }
-    } catch(err) {
+      const trendJson = await doFetch(`/api/analytics/trend?period=${selectedPeriod}`);
+      const normalized = normalizeTrendArray(trendJson);
+      setTrendData(normalized);
+    } catch (err) {
       console.error("Error fetching analytics data:", err);
       setError("Failed to load analytics. Try refreshing.");
       setSummary({});
@@ -63,13 +70,12 @@ const Analytics = () => {
     fetchAnalytics();
   }, [period]);
 
-  if(loading) return <div className="text-center text-gray-500 p-10">Loading Analytics...</div>;
-  if(error) return <div className="text-center text-red-500 p-10">{error}</div>;
-  if(trendData.length === 0) return <div className="text-center text-gray-500 p-10">No data available for this period.</div>;
+  if (loading) return <div className="text-center text-gray-500 p-10">Loading Analytics...</div>;
+  if (error) return <div className="text-center text-red-500 p-10">{error}</div>;
+  if (trendData.length === 0) return <div className="text-center text-gray-500 p-10">No data available for this period.</div>;
 
   return (
     <div className="space-y-8">
-      {/* Header + Period Select */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold">Analytics & Insights</h1>
@@ -89,29 +95,27 @@ const Analytics = () => {
         </select>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <p className="text-sm text-gray-600 dark:text-gray-400">Avg Energy Usage</p>
-          <h2 className="text-2xl font-semibold mt-2">{summary.avgEnergy || 0} kWh</h2>
+          <h2 className="text-2xl font-semibold mt-2">{summary.avgEnergy ?? 0} kWh</h2>
         </Card>
         <Card>
           <p className="text-sm text-gray-600 dark:text-gray-400">Avg Water Usage</p>
-          <h2 className="text-2xl font-semibold mt-2">{summary.avgWater || 0} L</h2>
+          <h2 className="text-2xl font-semibold mt-2">{summary.avgWater ?? 0} L</h2>
         </Card>
         <Card>
           <p className="text-sm text-gray-600 dark:text-gray-400">Carbon Footprint</p>
           <h2 className="text-2xl font-semibold mt-2">
-            {(scoreData.usage?.energy || 0) + (scoreData.usage?.water || 0)} units
+            {(scoreData.usage?.energy ?? 0) + (scoreData.usage?.water ?? 0)} units
           </h2>
         </Card>
         <Card>
           <p className="text-sm text-gray-600 dark:text-gray-400">Efficiency Score</p>
-          <h2 className="text-2xl font-semibold mt-2 text-green-500">{scoreData.score || 0}%</h2>
+          <h2 className="text-2xl font-semibold mt-2 text-green-500">{scoreData.score ?? 0}%</h2>
         </Card>
       </div>
 
-      {/* Line Chart */}
       <Card className="h-96 flex flex-col">
         <h3 className="text-lg font-semibold mb-4">Energy & Water Trend</h3>
         <ResponsiveContainer width="100%" height="100%">
@@ -132,7 +136,6 @@ const Analytics = () => {
         </ResponsiveContainer>
       </Card>
 
-      {/* Bar Chart */}
       <Card className="h-96 flex flex-col">
         <h3 className="text-lg font-semibold mb-4">Monthly Energy Comparison</h3>
         <ResponsiveContainer width="100%" height="100%">
