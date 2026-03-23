@@ -6,6 +6,6 @@ const schema = new mongoose.Schema({
   water: Number,
   energy: Number,
   timestamp: { type: Date, default: Date.now },
-});
+}, { timestamps: true }); // ✅ ADD THIS
 
 module.exports = mongoose.model("Data", schema);

@@ -1,3 +1,4 @@
+// src/pages/Profile.jsx
 import React, { useState, useEffect, useContext } from "react";
 import Card from "../components/ui/Card";
 import { AuthContext } from "../context/AuthContext";
@@ -27,17 +28,17 @@ const Profile = () => {
   });
   const [history, setHistory] = useState([]);
 
-  // ❌ Fix: only sync profileForm on initial page load
+  // Sync profileForm only on user change (prevent overwrite while typing)
   useEffect(() => {
-    if (user && pageLoading) {
+    if (user) {
       setProfileForm({
         name: user.name || "",
         building: user.building || "",
       });
     }
-  }, [user, pageLoading]);
+  }, [user]);
 
-  // Fetch stats & history
+  // Fetch profile, stats, history
   useEffect(() => {
     const fetchData = async () => {
       if (!user?.token) return;
@@ -66,7 +67,6 @@ const Profile = () => {
         setUser(updatedUser);
         localStorage.setItem("user", JSON.stringify(updatedUser));
 
-        // Ensure history array
         const historyArray = Array.isArray(historyJson.history) ? historyJson.history : [];
 
         const avgEnergy = historyArray.length
@@ -86,6 +86,7 @@ const Profile = () => {
         setPageLoading(false);
       }
     };
+
     fetchData();
   }, [user, setUser]);
 
@@ -99,7 +100,7 @@ const Profile = () => {
     setProfileForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // DARK MODE
+  // DARK MODE TOGGLE
   const toggleTheme = async () => {
     const newMode = !darkMode;
     setDarkMode(newMode);
@@ -124,6 +125,8 @@ const Profile = () => {
     setLoading(true);
 
     try {
+      const submittedData = { ...form, timestamp: new Date().toISOString() }; // store before reset
+
       const res = await fetch(`${API}/api/data`, {
         method: "POST",
         headers: {
@@ -138,12 +141,11 @@ const Profile = () => {
       });
       const data = await res.json();
       if (!res.ok) return toast.error(data.msg || "Submit failed");
+
       toast.success("Data submitted");
-      setForm({ building: "", water: "", energy: "" });
-      setHistory((prev) => [
-        { ...form, timestamp: new Date().toISOString() },
-        ...prev,
-      ].slice(0, 5));
+
+      setHistory((prev) => [submittedData, ...prev].slice(0, 5));
+      setForm({ building: "", water: "", energy: "" }); // reset after history update
     } catch {
       toast.error("Server error");
     } finally {

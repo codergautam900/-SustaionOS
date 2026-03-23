@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useMemo } from "react";
+import { useState, useEffect, useContext } from "react";
 import SustainabilityGauge from "../components/dashboard/SustainabilityGauge";
 import LiveStats from "../components/dashboard/LiveStats";
 import Card from "../components/ui/Card";
@@ -19,16 +19,29 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState([]);
   const [latest, setLatest] = useState(null);
-  const [scoreData, setScoreData] = useState({ score: 0 });
+  const [scoreData, setScoreData] = useState({
+    score: 0,
+    usage: { water: 0, energy: 0 },
+  });
   const [alerts, setAlerts] = useState([]);
   const [error, setError] = useState(null);
 
-  // 🔥 FETCH DASHBOARD DATA
+  // ✅ FETCH DASHBOARD
   const fetchDashboard = async () => {
     try {
       setError(null);
-      const user = JSON.parse(localStorage.getItem("user"));
-      if (!user?.token) throw new Error("User not authenticated");
+
+      const userStr = localStorage.getItem("user");
+      if (!userStr) {
+        setLoading(false);
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+      if (!user?.token) {
+        setLoading(false);
+        return;
+      }
 
       const [historyRes, scoreRes] = await Promise.all([
         fetch(`${API}/api/data/history`, {
@@ -39,49 +52,60 @@ const Dashboard = () => {
         }),
       ]);
 
-      if (!historyRes.ok || !scoreRes.ok) {
-        throw new Error("Failed to fetch dashboard data");
-      }
-
       const historyJson = await historyRes.json();
       const scoreJson = await scoreRes.json();
 
-      const histArray = Array.isArray(historyJson) ? historyJson : historyJson.history || [];
+      const histArray = Array.isArray(historyJson)
+        ? historyJson
+        : historyJson.history || [];
+
       setHistory(histArray);
       setLatest(histArray.length ? histArray[0] : null);
-      setScoreData(scoreJson || { score: 0 });
+      setScoreData(scoreJson || { score: 0, usage: { water: 0, energy: 0 } });
+
     } catch (err) {
       console.error("Dashboard error:", err);
-      setError(err.message || "Failed to load real-time data");
+      setError("Failed to load dashboard");
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ INIT + REALTIME
   useEffect(() => {
-    fetchDashboard();
+    const user = JSON.parse(localStorage.getItem("user"));
 
-    // 🔥 AUTO REFRESH fallback (every 5s)
-    const interval = setInterval(fetchDashboard, 5000);
+    if (user?.token) {
+      fetchDashboard();
+    } else {
+      setLoading(false);
+    }
 
-    // 🔥 SOCKET REAL-TIME UPDATES
+    // 🔁 AUTO REFRESH
+    const interval = setInterval(() => {
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (user?.token) fetchDashboard();
+    }, 5000);
+
+    // ⚡ REALTIME DATA
     socket.on("newData", async (data) => {
       setHistory((prev) => [data, ...prev]);
       setLatest(data);
 
-      // 🔥 Realtime score fetch
       try {
         const user = JSON.parse(localStorage.getItem("user"));
         if (!user?.token) return;
+
         const scoreRes = await fetch(`${API}/api/score`, {
           headers: { Authorization: `Bearer ${user.token}` },
         });
+
         if (scoreRes.ok) {
           const scoreJson = await scoreRes.json();
-          setScoreData(scoreJson || { score: 0 });
+          setScoreData(scoreJson);
         }
       } catch (err) {
-        console.error("Realtime score fetch error:", err);
+        console.error("Realtime score error:", err);
       }
     });
 
@@ -96,24 +120,26 @@ const Dashboard = () => {
     };
   }, []);
 
+  // ⏳ LOADING
   if (loading) return <DashboardSkeleton />;
 
-  if (error) {
+  // ❌ ERROR
+  if (error)
     return (
       <div className="p-10 text-center text-red-500 font-semibold">
         ⚠️ {error}
       </div>
     );
-  }
 
-  if (!latest) {
+  // 📭 NO DATA
+  if (!latest)
     return (
       <div className="p-10 text-center text-gray-500">
         No real-time data available yet.
       </div>
     );
-  }
 
+  // 💡 INSIGHTS
   const energyInsight =
     latest.energy > 400
       ? "⚠️ High energy consumption detected. Optimize heavy appliances."
@@ -151,12 +177,14 @@ const Dashboard = () => {
           <SustainabilityGauge score={scoreData?.score || 0} />
         </div>
         <div className="col-span-12 md:col-span-8">
-          <LiveStats water={latest.water} energy={latest.energy} />
+          <LiveStats
+            water={scoreData?.usage?.water || latest.water}
+            energy={scoreData?.usage?.energy || latest.energy}
+          />
         </div>
       </div>
 
-      {/* ENERGY & WATER CHARTS */}
-      {/* 🔥 Pass last 7 records dynamically */}
+      {/* CHART */}
       <EnergyWaterCharts data={[latest, ...history].slice(0, 7)} />
 
       {/* ALERTS + SUGGESTIONS */}
@@ -169,25 +197,25 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* AI INSIGHTS */}
+      {/* INSIGHTS */}
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 md:col-span-6">
-          <Card className="hover:scale-[1.03] transition shadow-xl border border-gray-200 dark:border-gray-700">
+          <Card className="hover:scale-[1.03] transition shadow-xl">
             <h3 className="text-lg font-semibold mb-3">⚡ Energy Insight</h3>
             <p className="text-sm">{energyInsight}</p>
           </Card>
         </div>
+
         <div className="col-span-12 md:col-span-6">
-          <Card className="hover:scale-[1.03] transition shadow-xl border border-gray-200 dark:border-gray-700">
+          <Card className="hover:scale-[1.03] transition shadow-xl">
             <h3 className="text-lg font-semibold mb-3">💧 Water Insight</h3>
             <p className="text-sm">{waterInsight}</p>
           </Card>
         </div>
       </div>
 
-      {/* AI CHAT WIDGET */}
+      {/* AI */}
       <AIChatWidget />
-
     </div>
   );
 };
