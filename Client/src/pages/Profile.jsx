@@ -28,7 +28,6 @@ const Profile = () => {
   });
   const [history, setHistory] = useState([]);
 
-  // ✅ FIX: prevent overwrite while typing
   useEffect(() => {
     if (user && !profileForm.name && !profileForm.building) {
       setProfileForm({
@@ -38,7 +37,6 @@ const Profile = () => {
     }
   }, [user]);
 
-  // Fetch profile, stats, history + ✅ SCORE FIX
   useEffect(() => {
     const fetchData = async () => {
       if (!user?.token) return;
@@ -54,7 +52,7 @@ const Profile = () => {
           fetch(`${API}/api/data/history`, {
             headers: { Authorization: `Bearer ${user.token}` },
           }),
-          fetch(`${API}/api/score`, { // ✅ SCORE FIX
+          fetch(`${API}/api/score`, {
             headers: { Authorization: `Bearer ${user.token}` },
           }),
         ]);
@@ -84,7 +82,6 @@ const Profile = () => {
           ? Math.round(historyArray.reduce((a, b) => a + b.water, 0) / historyArray.length)
           : 0;
 
-        // ✅ FINAL SCORE FIX
         setStats({
           ...statsJson,
           score: scoreJson.score || 0,
@@ -103,9 +100,8 @@ const Profile = () => {
     };
 
     fetchData();
-  }, [user?.token]); // ✅ FIXED dependency (IMPORTANT)
+  }, [user?.token]);
 
-  // INPUT HANDLERS
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -116,7 +112,6 @@ const Profile = () => {
     setProfileForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // DARK MODE TOGGLE
   const toggleTheme = async () => {
     const newMode = !darkMode;
     setDarkMode(newMode);
@@ -134,7 +129,6 @@ const Profile = () => {
     }
   };
 
-  // SUBMIT DATA
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.building) return toast.error("Building required");
@@ -170,7 +164,6 @@ const Profile = () => {
     }
   };
 
-  // UPDATE PROFILE
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     if (!user?.token) return toast.error("User not logged in");
@@ -216,48 +209,19 @@ const Profile = () => {
           <h1 className="text-3xl font-bold">👤 Profile</h1>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={toggleTheme}
-              className="p-3 rounded-full bg-gray-200 dark:bg-gray-800 hover:scale-110 transition"
-            >
+            <button onClick={toggleTheme} className="p-3 rounded-full bg-gray-200 dark:bg-gray-800">
               {darkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
-            <button
-              onClick={() => navigate("/")}
-              className="px-4 py-2 bg-primary rounded-lg font-semibold hover:scale-105 transition"
-            >
+            <button onClick={() => navigate("/")} className="px-4 py-2 bg-primary rounded-lg">
               Dashboard
             </button>
           </div>
         </div>
 
-        {/* USER CARD */}
-        <Card className="p-6 flex items-center gap-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
-          <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-black text-2xl font-bold shadow-lg">
-            {user?.name?.[0]?.toUpperCase() || "U"}
-          </div>
-
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              {user?.name || "User"}
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">{user?.email}</p>
-            <p className="text-sm mt-1 text-gray-700 dark:text-gray-300">
-              Building: <span className="font-semibold">{user?.building || "N/A"}</span>
-            </p>
-          </div>
-        </Card>
-
         {/* STATS */}
         <Card className="p-6">
           <SustainabilityGauge score={stats.score} />
-          <div className="flex justify-around mt-4 text-sm">
-            <span>⚡ {stats.totalEnergy + Number(form.energy || 0)}</span>
-            <span>💧 {stats.totalWater + Number(form.water || 0)}</span>
-            <span>📊 {stats.avgEnergy}</span>
-            <span>📊 {stats.avgWater}</span>
-          </div>
         </Card>
 
         {/* UPDATE PROFILE */}
@@ -267,7 +231,7 @@ const Profile = () => {
               name="name"
               value={profileForm.name}
               onChange={handleProfileChange}
-              className="w-full p-3 rounded-lg bg-gray-100 dark:bg-gray-800 border"
+              className="w-full p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border"
               placeholder="Name"
             />
 
@@ -275,28 +239,113 @@ const Profile = () => {
               name="building"
               value={profileForm.building}
               onChange={handleProfileChange}
-              className="w-full p-3 rounded-lg bg-gray-100 dark:bg-gray-800 border"
+              className="w-full p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border"
               placeholder="Building"
             />
 
-            <button className="w-full py-3 rounded-lg bg-green-500 text-white font-semibold">
+            <button className="w-full py-3 rounded-lg bg-green-500 text-white">
               {loading ? "Saving..." : "Update Profile"}
             </button>
           </form>
         </Card>
 
         {/* ADD DATA */}
+
+
+
+
+
+
+
+
+
         <Card className="p-6">
           <form onSubmit={handleSubmit} className="space-y-3">
-            <input name="building" value={form.building} onChange={handleChange} placeholder="Building" className="w-full p-3 border rounded" />
-            <input name="water" type="number" value={form.water} onChange={handleChange} placeholder="Water" className="w-full p-3 border rounded" />
-            <input name="energy" type="number" value={form.energy} onChange={handleChange} placeholder="Energy" className="w-full p-3 border rounded" />
+            <input
+              name="building"
+              value={form.building}
+              onChange={handleChange}
+              placeholder="Building"
+              className="w-full p-3 border rounded bg-white dark:bg-gray-800 text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+            />
+            <input
+              name="water"
+              type="number"
+              value={form.water}
+              onChange={handleChange}
+              placeholder="Water"
+              className="w-full p-3 border rounded bg-white dark:bg-gray-800 text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+            />
+            <input
+              name="energy"
+              type="number"
+              value={form.energy}
+              onChange={handleChange}
+              placeholder="Energy"
+              className="w-full p-3 border rounded bg-white dark:bg-gray-800 text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+            />
 
             <button className="w-full py-3 bg-blue-500 text-white rounded">
               {loading ? "Submitting..." : "Submit Data"}
             </button>
+
+
+
+{/* RECENT ACTIVITY */}
+<Card className="p-6">
+  <h3 className="text-lg font-semibold mb-4">📊 Recent Activity</h3>
+
+  {history.length === 0 ? (
+    <p className="text-gray-500 dark:text-gray-400">
+      No recent activity
+    </p>
+  ) : (
+    <div className="space-y-3">
+      {history.map((item, index) => (
+        <div
+          key={index}
+          className="flex justify-between items-center p-3 rounded-lg bg-gray-100 dark:bg-gray-800"
+        >
+          <div>
+            <p className="font-semibold text-gray-900 dark:text-white">
+              {item.building || "Building"}
+            </p>
+            <p className="text-xs text-gray-500">
+              {new Date(item.timestamp || item.createdAt).toLocaleString()}
+            </p>
+          </div>
+
+          <div className="text-sm text-right">
+            <p className="text-blue-500">💧 {item.water}</p>
+            <p className="text-green-500">⚡ {item.energy}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</Card>
+
+
+
+
+
+
+
+
+
+
           </form>
         </Card>
+
+
+
+
+
+
+
+
+
+
 
       </div>
     </div>
