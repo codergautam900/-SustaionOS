@@ -1,4 +1,4 @@
-// src/components/dashboard/EnergyWaterCharts.jsx
+// ...existing code...
 import React, { useContext, useMemo } from "react";
 import Card from "../ui/Card";
 import {
@@ -14,37 +14,55 @@ import { ThemeContext } from "../../context/ThemeContext";
 
 // Format data
 const formatData = (data = []) => {
+  if (!Array.isArray(data)) return [];
+
+  let warned = { missing: false, invalid: false };
   return data
     .slice()
     .map((item) => {
-      const date = item.createdAt || item.timestamp;
+      if (!item) return null;
+
+      // Accept common date keys; prefer createdAt -> timestamp -> time -> date
+      const date = item.createdAt ?? item.timestamp ?? item.time ?? item.date;
+      if (!date) {
+        if (!warned.missing) {
+          console.warn("Some entries missing date were skipped.");
+          warned.missing = true;
+        }
+        return null;
+      }
+
+      const parsedDate = new Date(date);
+      if (isNaN(parsedDate.getTime())) {
+        if (!warned.invalid) {
+          console.warn("Some entries have invalid dates and were skipped:", date);
+          warned.invalid = true;
+        }
+        return null;
+      }
+
+      const energyVal = Number(item.energy);
+      const waterVal = Number(item.water);
+
       return {
-        name: new Date(date).toLocaleDateString("en-IN", {
-          day: "numeric",
-          month: "short",
-        }),
-        energy: item.energy,
-        water: item.water,
-        time: new Date(date).getTime(),
+        name: parsedDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+        energy: isNaN(energyVal) ? 0 : energyVal,
+        water: isNaN(waterVal) ? 0 : waterVal,
+        time: parsedDate.getTime(),
       };
     })
+    .filter(Boolean)
     .sort((a, b) => a.time - b.time);
 };
 
 // Custom dot with number label
 const ValueDot = ({ cx, cy, payload, dataKey, color }) => {
+  const value = payload && payload[dataKey] != null ? payload[dataKey] : "";
   return (
     <g>
       <circle cx={cx} cy={cy} r={4} fill={color} />
-      <text
-        x={cx}
-        y={cy - 10}
-        textAnchor="middle"
-        fontSize={12}
-        fill={color}
-        fontWeight="bold"
-      >
-        {payload[dataKey]}
+      <text x={cx} y={cy - 10} textAnchor="middle" fontSize={12} fill={color} fontWeight="bold">
+        {value}
       </text>
     </g>
   );
@@ -52,7 +70,8 @@ const ValueDot = ({ cx, cy, payload, dataKey, color }) => {
 
 const ChartCard = ({ title, dataKey, color, data }) => {
   const { darkMode } = useContext(ThemeContext);
-  const formattedData = useMemo(() => formatData(data), [data]);
+  // data is expected to be already formatted by parent
+  const chartData = useMemo(() => (Array.isArray(data) ? data : []), [data]);
 
   return (
     <Card className="h-80 md:h-96 flex flex-col hover:scale-[1.02] transition-all duration-300 shadow-xl border border-gray-200 dark:border-gray-800">
@@ -62,7 +81,7 @@ const ChartCard = ({ title, dataKey, color, data }) => {
       </h3>
       <div className="flex-1">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={formattedData}>
+          <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "#374151" : "#E5E7EB"} />
             <XAxis dataKey="name" stroke={darkMode ? "#9CA3AF" : "#4B5563"} tick={{ fontSize: 12 }} />
             <YAxis stroke={darkMode ? "#9CA3AF" : "#4B5563"} tick={{ fontSize: 12 }} />
@@ -109,3 +128,4 @@ const EnergyWaterCharts = ({ data = [] }) => {
 };
 
 export default EnergyWaterCharts;
+// ...existing code...

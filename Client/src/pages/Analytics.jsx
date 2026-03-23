@@ -2,15 +2,7 @@
 import React, { useContext, useState, useEffect } from "react";
 import Card from "../components/ui/Card";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  BarChart,
-  Bar,
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar
 } from "recharts";
 import { ThemeContext } from "../context/ThemeContext";
 
@@ -21,147 +13,143 @@ const Analytics = () => {
   const [summary, setSummary] = useState({});
   const [scoreData, setScoreData] = useState({});
   const [trendData, setTrendData] = useState([]);
+  const [period, setPeriod] = useState("6"); // default last 6 months
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Summary
-        const summaryRes = await fetch("/api/analytics/summary");
-        const summaryJson = await summaryRes.json();
-        if (!summaryJson.msg) setSummary(summaryJson);
+  const fetchAnalytics = async (selectedPeriod = period) => {
+    setLoading(true);
+    setError("");
+    try {
+      // Summary
+      const summaryRes = await fetch(`/api/analytics/summary?period=${selectedPeriod}`);
+      const summaryJson = await summaryRes.json();
+      if(summaryJson.msg) {
+        setSummary({});
+      } else {
+        setSummary(summaryJson);
+      }
 
-        // Score
-        const scoreRes = await fetch("/api/analytics/score");
-        const scoreJson = await scoreRes.json();
-        setScoreData(scoreJson);
+      // Score
+      const scoreRes = await fetch(`/api/analytics/score`);
+      const scoreJson = await scoreRes.json();
+      setScoreData(scoreJson || { score: 0, usage: { energy:0, water:0 } });
 
-        // Trend
-        const trendRes = await fetch("/api/analytics/trend");
-        const trendJson = await trendRes.json();
-        const formattedTrend = trendJson.map((item) => ({
-          month: new Date(item.date).toLocaleString("default", { month: "short", year: "numeric" }),
-          energy: item.energy,
-          water: item.water,
+      // Trend
+      const trendRes = await fetch(`/api/analytics/trend?period=${selectedPeriod}`);
+      const trendJson = await trendRes.json();
+
+      if (!Array.isArray(trendJson) || trendJson.length === 0) {
+        setTrendData([]);
+      } else {
+        const formattedTrend = trendJson.map(item => ({
+          date: item.date || item.timestamp, // backend date field
+          energy: item.energy || 0,
+          water: item.water || 0,
         }));
         setTrendData(formattedTrend);
-      } catch (err) {
-        console.error("Error fetching analytics data:", err);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch(err) {
+      console.error("Error fetching analytics data:", err);
+      setError("Failed to load analytics. Try refreshing.");
+      setSummary({});
+      setScoreData({});
+      setTrendData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchData();
-  }, []);
+  useEffect(() => {
+    fetchAnalytics();
+  }, [period]);
 
-  if (loading)
-    return (
-      <div className="space-y-8 animate-pulse">
-        <div className="h-8 w-1/3 bg-gray-300 dark:bg-gray-700 rounded" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i} className="h-24 bg-gray-300 dark:bg-gray-700" />
-          ))}
-        </div>
-        <div className="grid grid-cols-1 gap-6">
-          {[...Array(2)].map((_, i) => (
-            <Card key={i} className="h-96 bg-gray-300 dark:bg-gray-700" />
-          ))}
-        </div>
-      </div>
-    );
+  if(loading) return <div className="text-center text-gray-500 p-10">Loading Analytics...</div>;
+  if(error) return <div className="text-center text-red-500 p-10">{error}</div>;
+  if(trendData.length === 0) return <div className="text-center text-gray-500 p-10">No data available for this period.</div>;
 
   return (
     <div className="space-y-8">
-      {/* Header */}
+      {/* Header + Period Select */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold">Analytics & Insights</h1>
-          <p className={`mt-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+          <p className={`${darkMode ? "text-gray-400" : "text-gray-600"} mt-1`}>
             Deep sustainability performance analysis
           </p>
         </div>
-
         <select
+          value={period}
+          onChange={(e) => setPeriod(e.target.value)}
           className={`bg-gray-200 dark:bg-gray-900 border border-gray-300 dark:border-gray-700
-            text-gray-900 dark:text-white px-3 py-2 rounded-lg text-sm
-            w-full md:w-auto transition-colors duration-300`}
+            text-gray-900 dark:text-white px-3 py-2 rounded-lg text-sm w-full md:w-auto transition-colors`}
         >
-          <option>Last 6 Months</option>
-          <option>Last 12 Months</option>
-          <option>This Year</option>
+          <option value="6">Last 6 Months</option>
+          <option value="12">Last 12 Months</option>
+          <option value="year">This Year</option>
         </select>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="hover:scale-105 transition-transform duration-300">
-          <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>Avg Energy Usage</p>
-          <h2 className="text-2xl font-semibold mt-2">{summary.avgEnergy} kWh</h2>
+        <Card>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Avg Energy Usage</p>
+          <h2 className="text-2xl font-semibold mt-2">{summary.avgEnergy || 0} kWh</h2>
         </Card>
-
-        <Card className="hover:scale-105 transition-transform duration-300">
-          <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>Avg Water Usage</p>
-          <h2 className="text-2xl font-semibold mt-2">{summary.avgWater} L</h2>
+        <Card>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Avg Water Usage</p>
+          <h2 className="text-2xl font-semibold mt-2">{summary.avgWater || 0} L</h2>
         </Card>
-
-        <Card className="hover:scale-105 transition-transform duration-300">
-          <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>Carbon Footprint</p>
+        <Card>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Carbon Footprint</p>
           <h2 className="text-2xl font-semibold mt-2">
-            {scoreData.usage?.energy + scoreData.usage?.water} units
+            {(scoreData.usage?.energy || 0) + (scoreData.usage?.water || 0)} units
           </h2>
         </Card>
-
-        <Card className="hover:scale-105 transition-transform duration-300">
-          <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>Efficiency Score</p>
-          <h2 className="text-2xl font-semibold mt-2 text-green-500">{scoreData.score}%</h2>
-          <p className="text-sm mt-1">{scoreData.status}</p>
+        <Card>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Efficiency Score</p>
+          <h2 className="text-2xl font-semibold mt-2 text-green-500">{scoreData.score || 0}%</h2>
         </Card>
       </div>
 
       {/* Line Chart */}
       <Card className="h-96 flex flex-col">
         <h3 className="text-lg font-semibold mb-4">Energy & Water Trend</h3>
-        <div className="flex-1 min-h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "#374151" : "#d1d5db"} />
-              <XAxis dataKey="month" stroke={darkMode ? "#9CA3AF" : "#4B5563"} />
-              <YAxis stroke={darkMode ? "#9CA3AF" : "#4B5563"} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: darkMode ? "#111827" : "#ffffff",
-                  border: `1px solid ${darkMode ? "#374151" : "#e5e7eb"}`,
-                  borderRadius: "10px",
-                }}
-              />
-              <Line type="monotone" dataKey="energy" stroke="#22C55E" strokeWidth={3} />
-              <Line type="monotone" dataKey="water" stroke="#3B82F6" strokeWidth={3} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={trendData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "#374151" : "#d1d5db"} />
+            <XAxis dataKey="date" stroke={darkMode ? "#9CA3AF" : "#4B5563"} />
+            <YAxis stroke={darkMode ? "#9CA3AF" : "#4B5563"} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: darkMode ? "#111827" : "#ffffff",
+                border: `1px solid ${darkMode ? "#374151" : "#e5e7eb"}`,
+                borderRadius: 10,
+              }}
+            />
+            <Line type="monotone" dataKey="energy" stroke="#22C55E" strokeWidth={3} />
+            <Line type="monotone" dataKey="water" stroke="#3B82F6" strokeWidth={3} />
+          </LineChart>
+        </ResponsiveContainer>
       </Card>
 
       {/* Bar Chart */}
       <Card className="h-96 flex flex-col">
         <h3 className="text-lg font-semibold mb-4">Monthly Energy Comparison</h3>
-        <div className="flex-1 min-h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "#374151" : "#d1d5db"} />
-              <XAxis dataKey="month" stroke={darkMode ? "#9CA3AF" : "#4B5563"} />
-              <YAxis stroke={darkMode ? "#9CA3AF" : "#4B5563"} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: darkMode ? "#111827" : "#ffffff",
-                  border: `1px solid ${darkMode ? "#374151" : "#e5e7eb"}`,
-                  borderRadius: "10px",
-                }}
-              />
-              <Bar dataKey="energy" fill="#22C55E" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={trendData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "#374151" : "#d1d5db"} />
+            <XAxis dataKey="date" stroke={darkMode ? "#9CA3AF" : "#4B5563"} />
+            <YAxis stroke={darkMode ? "#9CA3AF" : "#4B5563"} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: darkMode ? "#111827" : "#ffffff",
+                border: `1px solid ${darkMode ? "#374151" : "#e5e7eb"}`,
+                borderRadius: 10,
+              }}
+            />
+            <Bar dataKey="energy" fill="#22C55E" radius={[6, 6, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
       </Card>
     </div>
   );
