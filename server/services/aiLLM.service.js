@@ -1,5 +1,6 @@
-const Data = require("../models/Data");
+﻿const Data = require("../models/Data");
 const Alert = require("../models/Alert");
+const ConversationMemory = require("../models/ConversationMemory");
 const executiveInsights = require("./executiveInsights.service");
 const root = require("../ai/rootCause.engine");
 const suggest = require("../ai/suggestion.engine");
@@ -30,6 +31,166 @@ const addToMemory = (userId, role, text) => {
   arr.push({ role, text, time: Date.now() });
   if (arr.length > MAX_MEMORY) arr.shift();
   convoMemory.set(key, arr);
+};
+
+const knowledgeTopics = [
+  { name: "energy", match: /\benergy|electricity|power|kwh|load|units\b/i },
+  { name: "water", match: /\bwater|leak|pipeline|tank|flow|litre|liter\b/i },
+  { name: "alerts", match: /\balert|warning|issue|fault|error\b/i },
+  { name: "forecast", match: /\bpredict|forecast|tomorrow|next hour|next day\b/i },
+  { name: "score", match: /\bscore|efficiency|sustainability|rating\b/i },
+  { name: "carbon", match: /\bcarbon|co2|footprint|emission\b/i },
+  { name: "buildings", match: /\bbuilding|campus|site|floor|property\b/i },
+  { name: "map", match: /\bmap|location|lat|lng|latitude|longitude\b/i },
+  { name: "sensors", match: /\bsensor|mqtt|gateway|iot|device\b/i },
+  { name: "action", match: /\baction|fix|resolve|recommend|tip|optimize|save\b/i },
+];
+
+const detectLanguageStyle = (text = "") => {
+  const q = String(text).toLowerCase();
+  if (/[^\x00-\x7F]/.test(text)) return "hinglish";
+  if (/\b(bhai|yaar|kya|kaise|kyu|kyo|nahi|haan|hai|hoga|karo|kar|bata|sun)\b/.test(q)) {
+    return "hinglish";
+  }
+  return "english";
+};
+
+const extractTopics = (text = "", intent = "") => {
+  const q = String(text).toLowerCase();
+  const hits = [];
+  knowledgeTopics.forEach((topic) => {
+    if (topic.match.test(q) || intent === topic.name) hits.push(topic.name);
+  });
+  if (intent && !hits.includes(intent)) hits.unshift(intent);
+  return Array.from(new Set(hits)).slice(0, 5);
+};
+
+const mergeTopicCounts = (existing = [], newTopics = []) => {
+  const counts = new Map(existing.map((item) => [item.name, item.count || 0]));
+  newTopics.forEach((topic) => {
+    counts.set(topic, (counts.get(topic) || 0) + 1);
+  });
+  return Array.from(counts.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+};
+
+const buildSummaryFromState = (state = {}) => {
+  const topTopics = (state.topics || []).slice(0, 4).map((topic) => topic.name);
+  const language = state.style?.language || "hinglish";
+  const tone = state.style?.tone || "friendly";
+  const parts = [];
+
+  if (topTopics.length) parts.push(`Often discusses ${topTopics.join(", ")}.`);
+  if (language === "hinglish") parts.push("Prefers Hinglish or casual mixed-language replies.");
+  if (tone) parts.push(`Preferred tone: ${tone}.`);
+
+  return parts.join(" ");
+};
+
+const normalizeName = (value = "") =>
+  String(value)
+    .replace(/[^\w\s.'-]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 40);
+
+const extractNamePreference = (question = "") => {
+  const text = String(question || "").trim();
+  const patterns = [
+    /(?:call me|my name is|i am called|i'm called|you can call me)\s+([a-z][a-z\s.'-]{1,40})/i,
+    /(?:mera naam)\s+([a-z][a-z\s.'-]{1,40})/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match?.[1]) {
+      const preferredName = normalizeName(match[1]);
+      if (preferredName) return preferredName;
+    }
+  }
+
+  return "";
+};
+
+const resolveDisplayName = ({ user = null, memoryState = {}, question = "" } = {}) => {
+  const preferredFromMemory = normalizeName(memoryState?.profile?.preferredName || "");
+  const displayFromMemory = normalizeName(memoryState?.profile?.displayName || "");
+  const userName = normalizeName(user?.name || user?.firstName || user?.displayName || "");
+  const explicitName = extractNamePreference(question);
+
+  return {
+    preferredName: explicitName || preferredFromMemory || displayFromMemory || userName || "",
+    displayName: displayFromMemory || userName || preferredFromMemory || explicitName || "",
+  };
+};
+
+const loadConversationState = async (userId) => {
+  if (!userId) return null;
+  return ConversationMemory.findOne({ userId }).lean();
+};
+
+const persistConversationTurn = async ({
+  userId,
+  question,
+  answer,
+  intent,
+  tone,
+  followUp,
+  topics,
+  language,
+  displayName,
+  preferredName,
+}) => {
+  if (!userId) return;
+
+  try {
+    const existing = await ConversationMemory.findOne({ userId });
+    const recentTurns = Array.isArray(existing?.recentTurns) ? existing.recentTurns.slice(-18) : [];
+    const nextTurns = [
+      ...recentTurns,
+      { role: "user", text: question, intent, createdAt: new Date() },
+      { role: "assistant", text: answer, intent, createdAt: new Date() },
+    ].slice(-20);
+
+    const mergedTopics = mergeTopicCounts(existing?.topics || [], topics || []);
+    const existingPreferred = normalizeName(existing?.profile?.preferredName || "");
+    const existingDisplay = normalizeName(existing?.profile?.displayName || "");
+    const nextPreferred = normalizeName(preferredName || existingPreferred || "");
+    const nextDisplay = normalizeName(displayName || existingDisplay || nextPreferred || "");
+    const summary = buildSummaryFromState({
+      topics: mergedTopics,
+      style: {
+        language: language || existing?.style?.language || "hinglish",
+        tone: tone || existing?.style?.tone || "friendly",
+      },
+    });
+
+    await ConversationMemory.findOneAndUpdate(
+      { userId },
+      {
+        $set: {
+          summary,
+          profile: {
+            displayName: nextDisplay,
+            preferredName: nextPreferred,
+          },
+          style: {
+            language: language || existing?.style?.language || "hinglish",
+            tone: tone || existing?.style?.tone || "friendly",
+          },
+          topics: mergedTopics,
+          recentTurns: nextTurns,
+          lastSeenAt: new Date(),
+        },
+      },
+      { upsert: true, returnDocument: "after" }
+    );
+
+  } catch (err) {
+    console.error("Conversation persistence failed:", err.message || err);
+  }
 };
 
 const getMemory = (userId) => {
@@ -70,8 +231,460 @@ const buildGeneralHelp = () => ({
   status: "success",
   intent: "general_help",
   answer:
-    "I can read your latest data, compare periods, explain spikes, forecast usage, or suggest actions. Try asking for a comparison, a diagnosis, a forecast, or the top next step.",
+    "I can read your latest data, compare periods, explain spikes, forecast usage, suggest actions, track sensors, map buildings, and support facility or operations questions. Try asking for a comparison, a diagnosis, a forecast, maintenance advice, or the top next step.",
 });
+
+const buildHumanConversationReply = ({ question, memoryState = {}, memoryTurns = [], user = null }) => {
+  const q = String(question || "").toLowerCase();
+  const userName = normalizeName(memoryState?.profile?.preferredName || memoryState?.profile?.displayName || user?.name || "");
+  const lastAssistant = [...(memoryTurns || [])].reverse().find((m) => m.role === "assistant")?.text || "";
+  const lastUser = [...(memoryTurns || [])].reverse().find((m) => m.role === "user")?.text || "";
+
+  const say = (text, followUp = "") => ({
+    reply: text,
+    tone: "friendly",
+    followUp,
+  });
+
+  if (/\b(good night|gn|good evening|good morning|good afternoon|hello|hi|hey|namaste|salaam)\b/.test(q)) {
+    return say(
+      userName ? `Hi ${userName}. I’m here — tell me what you need.` : "Hi. I’m here — tell me what you need.",
+      "Want to chat casually or check your dashboard?"
+    );
+  }
+
+  if (/\bhow are you\b|\bhru\b|\bhow r you\b/.test(q)) {
+    return say(
+      `I’m doing well. I’m keeping an eye on your campus data and trying to be useful, not noisy.`,
+      "How are you doing today?"
+    );
+  }
+
+  if (/\bwhat are you doing\b|\bwhat do you do\b|\bwhat can you do\b|\bwho are you\b|\bintroduce yourself\b/.test(q)) {
+    return say(
+      "I’m your assistant for both daily chat and sustainability ops. I can remember your name, explain data, take voice input, and save telemetry when you say submit.",
+      "Want me to show the voice flow?"
+    );
+  }
+
+  if (/\bthanks?\b|\bthank you\b|\bthx\b/.test(q)) {
+    return say(
+      userName ? `Anytime, ${userName}.` : "Anytime.",
+      "If you want, I can also help with a quick data entry flow."
+    );
+  }
+
+  if (/\bjoke\b|\bfunny\b|\blaugh\b/.test(q)) {
+    return say(
+      "Why did the sensor stay calm? Because it had great signal quality.",
+      "Want a serious tip or another joke?"
+    );
+  }
+
+  if (/\bmotivat|encourage|tired|bored|sad|stress|anxiety|upset|angry\b/.test(q)) {
+    return say(
+      "Take one small step first. Big progress usually starts with one clear action, not one perfect plan.",
+      "Do you want a simple plan for today?"
+    );
+  }
+
+  if (/\badvice|suggest|opinion|what do you think|your thought|help me choose\b/.test(q)) {
+    return say(
+      "My honest take: keep it simple, act on the biggest issue first, and don’t overthink the rest.",
+      lastUser ? `I’m also remembering you last mentioned: ${lastUser}.` : "If you want, I can make that more specific."
+    );
+  }
+
+  if (/\bgood morning|morning|good afternoon|afternoon|good evening|evening\b/.test(q)) {
+    return say(
+      `Good to see you${userName ? `, ${userName}` : ""}. I’m ready whenever you are.`,
+      "Want a quick check-in or a data entry mode?"
+    );
+  }
+
+  if (/\bwhat's up\b|\bwhats up\b|\bwhat's new\b|\bwhat is new\b/.test(q)) {
+    return say(
+      `Not much noise here — just watching your latest system state. ${lastAssistant ? "I’m still following the last topic." : ""}`,
+      "Want to continue where we left off?"
+    );
+  }
+
+  if (/\bhow was your day\b|\bhow's your day\b|\bhow is your day\b/.test(q)) {
+    return say(
+      "My day has been mostly telemetry, context, and your requests — which is a pretty good day for me.",
+      "How was your day?"
+    );
+  }
+
+  return null;
+};
+
+const choose = (items, seed = 0) => {
+  if (!Array.isArray(items) || items.length === 0) return "";
+  const index = Math.abs(seed) % items.length;
+  return items[index];
+};
+
+const getLocalGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+};
+
+const buildCasualConversationReply = ({ question, memory, latest, insights, user }) => {
+  const q = String(question || "").toLowerCase();
+  const greeting = getLocalGreeting();
+  const building = latest?.building || insights?.buildingBenchmarks?.[0]?.building || "your site";
+  const score = Number(insights?.score ?? 0);
+  const lastTopic = [...(memory || [])].reverse().find((m) => m.role === "assistant")?.text || "";
+  const userName = user?.name || user?.firstName || "";
+  const salutation = userName ? `${greeting}, ${userName}` : greeting;
+
+  if (/\b(good morning|morning|good afternoon|afternoon|good evening|evening)\b/.test(q)) {
+    return {
+      reply: `${salutation} — I'm live and tracking ${building}. ${score > 0 ? `Current score is ${score}/100.` : "I'm waiting on fresh telemetry."} What do you want to check first today?`,
+      tone: "friendly",
+      followUp: "Want a quick daily summary?",
+    };
+  }
+
+  if (/\bhow are you\b|\bhow r you\b|\bhru\b/.test(q)) {
+    return {
+      reply: `I'm doing well — I'm watching the energy and water flow on ${building}. ${userName ? `${userName}, ` : ""}how's your day going?`,
+      tone: "friendly",
+      followUp: "Want me to show today's top issue?",
+    };
+  }
+
+  if (/\bwhat are you doing\b|\bwhat do you do\b|\bwhat can you do\b|\bwhat's up\b|\bwhats up\b/.test(q)) {
+    return {
+      reply: `I'm keeping an eye on live telemetry, alerts, and forecasts. In simple words: I spot waste, explain it, and tell you what to do next.`,
+      tone: "friendly",
+      followUp: "Should I give you a quick campus status?",
+    };
+  }
+
+  if (/\bthank(s| you)\b/.test(q)) {
+    return {
+      reply: `Anytime${userName ? `, ${userName}` : ""}. I'm here whenever you want a quick read on the campus or a next step.`,
+      tone: "friendly",
+      followUp: "Want to review the latest building now?",
+    };
+  }
+
+  if (/\bwho are you\b|\bintroduce yourself\b|\bwho r you\b/.test(q)) {
+    return {
+      reply: `I'm SustainOS AI — your sustainability copilot for energy, water, alerts, forecasts, and map-based location tracking.`,
+      tone: "friendly",
+      followUp: "Want me to show what I can do in 30 seconds?",
+    };
+  }
+
+  if (/\bhow was your day\b|\bhow's your day\b|\bhow is your day\b/.test(q)) {
+    return {
+      reply: `My day is basically a steady stream of telemetry and alerts — which is exactly how I like it. ${lastTopic ? `I'm still thinking about ${lastTopic}.` : ""}`,
+      tone: "friendly",
+      followUp: "How's yours going?",
+    };
+  }
+
+  if (/\bjoke\b|\bfunny\b/.test(q)) {
+    return {
+      reply: `I would make a joke about a leak, but I don't want it to go over your head. Better to catch it early.`,
+      tone: "light",
+      followUp: "Want a serious tip for reducing waste instead?",
+    };
+  }
+
+  return null;
+};
+
+const buildCasualConversationReplyV2 = ({ question, memory, latest, insights, user, memoryState }) => {
+  const q = String(question || "").toLowerCase();
+  const greeting = getLocalGreeting();
+  const building = latest?.building || insights?.buildingBenchmarks?.[0]?.building || "your site";
+  const score = Number(insights?.score ?? 0);
+  const lastTopic = [...(memory || [])].reverse().find((m) => m.role === "assistant")?.text || "";
+  const userName = normalizeName(
+    memoryState?.profile?.preferredName || memoryState?.profile?.displayName || user?.name || user?.firstName || user?.displayName || ""
+  );
+  const salutation = userName ? `${greeting}, ${userName}` : greeting;
+
+  if (/\b(good morning|morning|good afternoon|afternoon|good evening|evening)\b/.test(q)) {
+    return {
+      reply: `${salutation} — I'm live and tracking ${building}. ${score > 0 ? `Current score is ${score}/100.` : "I'm waiting on fresh telemetry."} What do you want to check first today?`,
+      tone: "friendly",
+      followUp: "Want a quick daily summary?",
+    };
+  }
+
+  if (/\bhow are you\b|\bhow r you\b|\bhru\b/.test(q)) {
+    return {
+      reply: `I'm doing well — I'm watching the energy and water flow on ${building}. ${userName ? `${userName}, ` : ""}how's your day going?`,
+      tone: "friendly",
+      followUp: "Want me to show today's top issue?",
+    };
+  }
+
+  if (/\bwhat are you doing\b|\bwhat do you do\b|\bwhat can you do\b|\bwhat's up\b|\bwhats up\b/.test(q)) {
+    return {
+      reply: `I'm keeping an eye on live telemetry, alerts, and forecasts. In simple words: I spot waste, explain it, and tell you what to do next.`,
+      tone: "friendly",
+      followUp: "Should I give you a quick campus status?",
+    };
+  }
+
+  if (/\bthank(s| you)\b/.test(q)) {
+    return {
+      reply: `Anytime${userName ? `, ${userName}` : ""}. I'm here whenever you want a quick read on the campus or a next step.`,
+      tone: "friendly",
+      followUp: "Want to review the latest building now?",
+    };
+  }
+
+  if (/\bwho are you\b|\bintroduce yourself\b|\bwho r you\b/.test(q)) {
+    return {
+      reply: `I'm SustainOS AI — your sustainability copilot for energy, water, alerts, forecasts, and map-based location tracking.`,
+      tone: "friendly",
+      followUp: "Want me to show what I can do in 30 seconds?",
+    };
+  }
+
+  if (/\bhow was your day\b|\bhow's your day\b|\bhow is your day\b/.test(q)) {
+    return {
+      reply: `My day is basically a steady stream of telemetry and alerts — which is exactly how I like it. ${lastTopic ? `I'm still thinking about ${lastTopic}.` : ""}`,
+      tone: "friendly",
+      followUp: "How's yours going?",
+    };
+  }
+
+  if (/\bjoke\b|\bfunny\b/.test(q)) {
+    return {
+      reply: `I would make a joke about a leak, but I don't want it to go over your head. Better to catch it early.`,
+      tone: "light",
+      followUp: "Want a serious tip for reducing waste instead?",
+    };
+  }
+
+  return null;
+};
+
+const buildIndustryCopilotReply = ({ question, latest, insights, alerts, prediction, rootCause, user }) => {
+  const q = String(question || "").toLowerCase();
+  const building = latest?.building || insights?.buildingBenchmarks?.[0]?.building || "your site";
+  const score = Number(insights?.score ?? 0);
+  const topIssue = alerts?.[0]?.message || rootCause || "a recent waste spike";
+  const maintenanceHints = [
+    latest?.sensorId ? `sensor ${latest.sensorId}` : null,
+    latest?.batteryLevel != null ? `battery ${latest.batteryLevel}%` : null,
+    latest?.signalQuality != null ? `signal ${latest.signalQuality}%` : null,
+  ].filter(Boolean);
+
+  const reply = (text, followUp = "", tone = "friendly") => ({
+    reply: text,
+    followUp,
+    tone,
+  });
+
+  if (
+    /\bwhat can you do\b|\bwhat do you solve\b|\bcapabilities\b|\buse cases\b|\bhow can you help\b|\breal world\b|\bindustry\b|\bwhat problems\b/.test(
+      q
+    )
+  ) {
+    return reply(
+      "I can help with energy, water, carbon, alerts, forecasts, building comparison, map locations, sensor health, voice-based data entry, daily chat, reports, and next actions. For industry teams, I can also support facility ops, maintenance, compliance, budgets, occupancy, and workflow prioritization.",
+      "Want the exact list by team: facility, sustainability, or operations?"
+    );
+  }
+
+  if (/\bmaintenance\b|\basset\b|\bequipment\b|\bhvac\b|\buptime\b|\bdowntime\b|\bfailure\b|\bservice\b|\bcalibration\b/.test(q)) {
+    return reply(
+      `For ${building}, I can flag recurring spikes, weak sensor health, and likely equipment drift so maintenance teams inspect the right asset first. ${maintenanceHints.length ? `I also see ${maintenanceHints.join(", ")}.` : ""}`,
+      "Want a maintenance checklist for the top issue?",
+      "analytical"
+    );
+  }
+
+  if (/\bcompliance\b|\baudit\b|\besg\b|\breport\b|\bpolicy\b|\bgovernance\b|\bmonthly review\b|\bexecutive\b/.test(q)) {
+    return reply(
+      "I can turn live telemetry into executive-ready reports, ESG-style summaries, alerts, and savings estimates. That makes audits, reviews, and compliance checks much faster.",
+      "Want a report summary for this month?",
+      "analytical"
+    );
+  }
+
+  if (/\bbudget\b|\bcost\b|\bsavings\b|\bbill\b|\bexpense\b|\broi\b|\bprocurement\b/.test(q)) {
+    return reply(
+      `I can help reduce operating cost by showing the worst buildings, the biggest waste spikes, and the next best action. Current score ${score}/100 means there is room to save if you act on the top issue first.`,
+      "Want me to prioritize cost-saving actions?",
+      "supportive"
+    );
+  }
+
+  if (/\boccupancy\b|\bafter-hours\b|\boff hours\b|\boff-hours\b|\bempty\b|\bshift\b|\bworking hours\b/.test(q)) {
+    return reply(
+      `I can use occupancy-aware logic to catch energy use when buildings should be empty. For ${building}, I would compare working hours vs off-hours and flag any abnormal draw.`,
+      "Want me to show after-hours waste if available?",
+      "analytical"
+    );
+  }
+
+  if (/\bworkflow\b|\bsla\b|\bincident\b|\bescalat\b|\bteam\b|\btask\b|\bassign\b|\bapprove\b/.test(q)) {
+    return reply(
+      "I can support ops workflows by ranking incidents, marking severity, and surfacing the next action for the right team. Alerts can be acknowledged, resolved, and escalated without losing context.",
+      "Want a team-by-team incident flow?",
+      "supportive"
+    );
+  }
+
+  if (/\biot\b|\bsensor\b|\bmqtt\b|\bgateway\b|\bdevice\b|\bhealth\b|\bbattery\b|\bsignal\b/.test(q)) {
+    return reply(
+      "I can handle sensor health, battery level, signal quality, calibration due dates, and future MQTT or webhook ingestion. That means the app is ready for real devices later, without changing the whole dashboard.",
+      "Want a sample gateway payload?",
+      "analytical"
+    );
+  }
+
+  if (/\bsecurity\b|\bprivacy\b|\baccess\b|\buser roles\b|\bauthorization\b/.test(q)) {
+    return reply(
+      "I can work with auth-protected, user-scoped data, so each team sees only their own buildings, alerts, and reports.",
+      "Want to separate admin and operator views?",
+      "supportive"
+    );
+  }
+
+  return null;
+};
+
+const humanizeLocalReply = ({ payload, parsed, insights, latest, alerts, prediction, rootCause, tips, question }) => {
+  const intent = payload?.intent || "general_help";
+  const topBuilding = insights?.buildingBenchmarks?.[0]?.building || latest?.building || "your site";
+  const score = Number(insights?.score ?? 0);
+  const risk = String(insights?.riskLevel || "Low").toLowerCase();
+  const energy = toNumber(latest?.energy);
+  const water = toNumber(latest?.water);
+  const memorySeed = `${question || ""}${payload?.answer || ""}${intent}`.length;
+
+  const opening = choose(
+    [
+      "Here's the short version",
+      "I checked the latest telemetry",
+      "Based on current readings",
+      "Looking at the live data",
+      "From the current snapshot",
+    ],
+    memorySeed
+  );
+
+  const closers = choose(
+    [
+      "If you want, I can break this down by building next.",
+      "I can also compare this with the last 7 days.",
+      "If you want, I'll turn this into a 1-step action plan.",
+      "I can also show the map view for the affected building.",
+    ],
+    memorySeed + 3
+  );
+
+  const summaryLine = (() => {
+    if (intent === "forecast") {
+      return `Forecast looks like this: next hour energy ${prediction?.predictedEnergyNextHour ?? prediction?.predictedEnergyAvg ?? "N/A"}, water ${prediction?.predictedWaterNextHour ?? prediction?.predictedWaterAvg ?? "N/A"}.`;
+    }
+
+    if (intent === "compare") {
+      return payload.answer || "The comparison is available in the last time window.";
+    }
+
+    if (intent === "score") {
+      return `Your sustainability score is ${score}/100, which is ${risk} risk right now.`;
+    }
+
+    if (intent === "carbon") {
+      return `Your current carbon footprint is about ${insights?.carbon ?? 0} kg CO2.`;
+    }
+
+    if (intent === "benchmark") {
+      return payload.answer || `The highest-load building right now is ${topBuilding}.`;
+    }
+
+    if (intent === "diagnosis") {
+      return rootCause || payload.answer || "The usage pattern suggests a waste spike.";
+    }
+
+    if (intent === "action_plan") {
+      const primary = insights?.nextBestAction || payload.answer || "Keep monitoring the live load.";
+      return `Best next move: ${primary}`;
+    }
+
+    if (intent === "report_summary") {
+      return `Quick summary: score ${score}/100, savings potential Rs. ${insights?.monthlySavingsPotential ?? 0}, carbon ${insights?.carbon ?? 0} kg.`;
+    }
+
+    if (intent === "small_talk") {
+      return payload.answer || "I'm here and ready to help with energy, water, carbon, alerts, and forecasts.";
+    }
+
+    return payload.answer || "I can help with energy, water, carbon, alerts, forecasts, and action plans.";
+  })();
+
+  const detailLine = (() => {
+    if (intent === "score" && latest) {
+      return `Latest reading is ${latest.building || "Unknown"} with energy ${energy} and water ${water}.`;
+    }
+
+    if (intent === "diagnosis") {
+      return `Most likely root cause: ${rootCause || "mixed operational drift"}.`;
+    }
+
+    if (intent === "action_plan" && Array.isArray(payload?.actionPlan) && payload.actionPlan.length > 0) {
+      const first = payload.actionPlan[0];
+      return `Start with ${first.title || "the first action"}: ${first.reason || "reduce waste at the source"}.`;
+    }
+
+    if (intent === "compare" && payload?.comparison?.text) {
+      return payload.comparison.text;
+    }
+
+    if (intent === "forecast") {
+      return `Use this to plan peak-load shifting before the next interval.`;
+    }
+
+    if (intent === "report_summary") {
+      return `Top building right now: ${payload?.report?.building || topBuilding}.`;
+    }
+
+    if (intent === "carbon") {
+      return `To reduce it, trim peak loads, move heavy usage off-peak, and inspect repeated spikes.`;
+    }
+
+    return payload?.tone === "supportive"
+      ? "I'm keeping this concise so you can act on it quickly."
+      : "I'm keeping the answer grounded in the live data.";
+  })();
+
+  const followUp =
+    payload?.followUp ||
+    (intent === "forecast"
+      ? "Want me to compare this against the last week?"
+      : intent === "diagnosis"
+        ? "Should I also show the worst building on the map?"
+        : intent === "action_plan"
+          ? "Do you want a 3-step action checklist?"
+          : intent === "score"
+            ? "Should I explain why the score moved?"
+            : intent === "compare"
+              ? "Do you want the same comparison by building too?"
+              : intent === "carbon"
+                ? "Should I estimate savings if you cut usage by 10%?"
+                : null);
+
+  return {
+    reply: [opening + ".", summaryLine, detailLine, closers].filter(Boolean).join(" "),
+    tone: "friendly",
+    followUp,
+  };
+};
 
 const buildStructuredAnswer = (payload) => ({
   status: "success",
@@ -113,7 +726,7 @@ const parseJsonSafe = (text) => {
   }
 };
 
-const buildConversationPrompt = ({ question, payload, insights, latest, alerts, memory }) => {
+const buildConversationPrompt = ({ question, payload, insights, latest, alerts, memoryTurns = [], memoryState = {} }) => {
   const safeInsights = {
     score: insights?.score ?? 0,
     riskLevel: insights?.riskLevel || "Low",
@@ -142,13 +755,22 @@ const buildConversationPrompt = ({ question, payload, insights, latest, alerts, 
     message: a.message || "",
   }));
 
+  const memorySummary = memoryState?.summary || "";
+  const memoryStyle = memoryState?.style || {};
+  const memoryProfile = memoryState?.profile || {};
+  const memoryTopics = Array.isArray(memoryState?.topics) ? memoryState.topics.slice(0, 5).map((t) => `${t.name}:${t.count}`) : [];
+
   return [
     `Question: ${question}`,
     `Current response plan: ${JSON.stringify(payload)}`,
     `Latest reading: ${JSON.stringify(safeLatest)}`,
     `Insights: ${JSON.stringify(safeInsights)}`,
     `Recent alerts: ${JSON.stringify(safeAlerts)}`,
-    `Conversation history:\n${formatMemory(memory) || "No prior conversation."}`,
+    `User memory summary: ${memorySummary || "No stored memory yet."}`,
+    `User memory profile: ${JSON.stringify(memoryProfile)}`,
+    `Preferred style: ${JSON.stringify(memoryStyle)}`,
+    `Top remembered topics: ${memoryTopics.join(", ") || "None"}`,
+    `Conversation history:\n${formatMemory(memoryTurns) || "No prior conversation."}`,
     "",
     "Return ONLY valid JSON with this shape:",
     JSON.stringify({
@@ -291,7 +913,7 @@ const humanizeWithGemini = async ({ prompt }) => {
   };
 };
 
-const humanizeWithLLM = async ({ question, payload, insights, latest, alerts, memory }) => {
+const humanizeWithLLM = async ({ question, payload, insights, latest, alerts, memory, memoryState }) => {
   if (typeof fetch !== "function") return null;
 
   const prompt = buildConversationPrompt({
@@ -300,7 +922,8 @@ const humanizeWithLLM = async ({ question, payload, insights, latest, alerts, me
     insights,
     latest,
     alerts,
-    memory,
+    memoryTurns: memory,
+    memoryState,
   });
 
   const mode = getProviderPreference();
@@ -392,13 +1015,49 @@ const generateAnswer = async ({ question, userId, context = {} }) => {
   const parsed = parseQuery(q);
 
   addToMemory(userId, "user", qRaw);
+  const conversationState = await loadConversationState(userId);
   const memory = getMemory(userId);
+  const identity = resolveDisplayName({ user: context?.user || null, memoryState: conversationState || {}, question: qRaw });
+  const explicitPreferredName = extractNamePreference(qRaw);
+  const memoryTurns = [
+    ...((conversationState?.recentTurns || []).slice(-6)),
+    ...memory,
+  ].slice(-8);
 
   if (!userId) {
     return buildStructuredAnswer({
       intent: "unauthorized",
       answer: "Unauthorized: user context missing.",
     });
+  }
+
+  if (explicitPreferredName) {
+    const payload = buildStructuredAnswer({
+      intent: "small_talk",
+      answer: `Got it — I'll call you ${explicitPreferredName} from now on.`,
+      tone: "friendly",
+      followUp: "Want me to remember anything else?",
+      parsed,
+    });
+
+    payload.aiMode = "local";
+    payload.confidence = 68;
+
+    addToMemory(userId, "assistant", payload.answer || JSON.stringify(payload));
+    await persistConversationTurn({
+      userId,
+      question: qRaw,
+      answer: payload.answer || "",
+      intent: payload.intent || "small_talk",
+      tone: payload.tone || "friendly",
+      followUp: payload.followUp || "",
+      topics: extractTopics(qRaw, payload.intent),
+      language: detectLanguageStyle(qRaw),
+      displayName: identity.displayName || explicitPreferredName,
+      preferredName: explicitPreferredName,
+    });
+
+    return { ...payload, conversation: getMemory(userId).slice(-6), insights: null };
   }
 
   const period = detectPeriod(q);
@@ -417,9 +1076,119 @@ const generateAnswer = async ({ question, userId, context = {} }) => {
   const rootCause = await root.findCause(userId);
   const tips = await suggest.getSuggestions(userId);
 
-  const isFollowUp = q.length < 25 && memory.length > 1;
+  const isFollowUp = q.length < 25 && memoryTurns.length > 1;
   const comparison = summarizeComparison(insights);
   const topBuilding = insights?.buildingBenchmarks?.[0];
+  const humanReply = buildHumanConversationReply({
+    question: qRaw,
+    memoryState: conversationState || {},
+    memoryTurns,
+    user: context?.user || null,
+  });
+
+  if (humanReply && !parsed.hasEnergy && !parsed.hasWater && !parsed.hasCarbon && !parsed.hasScore && !parsed.hasAlert && !parsed.hasCompare && !parsed.hasAction && !parsed.hasBuilding && !parsed.hasCurrent && !parsed.hasSuggestion) {
+    const payload = buildStructuredAnswer({
+      intent: "small_talk",
+      answer: humanReply.reply,
+      tone: humanReply.tone || "friendly",
+      followUp: humanReply.followUp || "",
+      parsed,
+    });
+
+    payload.aiMode = "local";
+    payload.confidence = 70;
+    addToMemory(userId, "assistant", payload.answer || JSON.stringify(payload));
+    await persistConversationTurn({
+      userId,
+      question: qRaw,
+      answer: payload.answer || "",
+      intent: payload.intent || "small_talk",
+      tone: payload.tone || "friendly",
+      followUp: payload.followUp || "",
+      topics: extractTopics(qRaw, payload.intent),
+      language: detectLanguageStyle(qRaw),
+      displayName: identity.displayName,
+      preferredName: identity.preferredName,
+    });
+
+    return { ...payload, conversation: getMemory(userId).slice(-6), insights };
+  }
+
+  const casualReply = buildCasualConversationReplyV2({
+    question: qRaw,
+    memory: memoryTurns,
+    latest,
+    insights,
+    user: context?.user || null,
+    memoryState: conversationState || {},
+  });
+
+  if (casualReply && parsed.hasSmallTalk) {
+    const payload = buildStructuredAnswer({
+      intent: "small_talk",
+      answer: casualReply.reply,
+      tone: casualReply.tone || "friendly",
+      followUp: casualReply.followUp || "",
+      parsed,
+    });
+
+    payload.aiMode = "local";
+    payload.confidence = computeConfidence(payload.intent, parsed, insights, memoryTurns.length > 0);
+    addToMemory(userId, "assistant", payload.answer || JSON.stringify(payload));
+    await persistConversationTurn({
+      userId,
+      question: qRaw,
+      answer: payload.answer || "",
+      intent: payload.intent || "small_talk",
+      tone: payload.tone || "friendly",
+      followUp: payload.followUp || "",
+      topics: extractTopics(qRaw, payload.intent),
+      language: detectLanguageStyle(qRaw),
+      displayName: identity.displayName,
+      preferredName: identity.preferredName,
+    });
+
+    return { ...payload, conversation: getMemory(userId).slice(-6), insights };
+  }
+
+  const industryReply = buildIndustryCopilotReply({
+    question: qRaw,
+    latest,
+    insights,
+    alerts,
+    prediction,
+    rootCause,
+    user: context?.user || null,
+  });
+
+  if (industryReply && (detectedIntent === "operations" || /facility|maintenance|compliance|audit|budget|occupancy|hvac|iot|sensor|workflow|sla|uptime|downtime|asset|procurement|industry/i.test(q))) {
+    const payload = buildStructuredAnswer({
+      intent: "industry_support",
+      answer: industryReply.reply,
+      tone: industryReply.tone || "friendly",
+      followUp: industryReply.followUp || "",
+      parsed,
+    });
+
+    payload.aiMode = "local";
+    payload.confidence = computeConfidence(payload.intent, parsed, insights, memoryTurns.length > 0);
+    addToMemory(userId, "assistant", payload.answer || JSON.stringify(payload));
+    await persistConversationTurn({
+      userId,
+      question: qRaw,
+      answer: payload.answer || "",
+      intent: payload.intent || "industry_support",
+      tone: payload.tone || "friendly",
+      followUp: payload.followUp || "",
+      topics: extractTopics(qRaw, payload.intent),
+      language: detectLanguageStyle(qRaw),
+      displayName: identity.displayName,
+      preferredName: identity.preferredName,
+    });
+
+    return { ...payload, conversation: getMemory(userId).slice(-6), insights };
+  }
+
   const shouldUseCurrentSnapshot =
     parsed.hasCurrent ||
     ((parsed.hasEnergy || parsed.hasWater || parsed.hasScore || parsed.hasCarbon) &&
@@ -571,11 +1340,11 @@ const generateAnswer = async ({ question, userId, context = {} }) => {
     payload = buildStructuredAnswer({
       intent: "small_talk",
       answer:
-        "Hey! I can help with live sustainability questions, forecasts, comparisons, alerts, reports, and next actions. Ask me in a natural way and I’ll figure it out.",
+        "Hey! I can help with live sustainability questions, forecasts, comparisons, alerts, reports, and next actions. Ask me in a natural way and I'll figure it out.",
       parsed,
     });
   } else if (isFollowUp) {
-    const lastAssistant = [...memory].reverse().find((m) => m.role === "assistant");
+    const lastAssistant = [...memoryTurns].reverse().find((m) => m.role === "assistant");
     payload = buildStructuredAnswer({
       intent: "follow_up",
       answer: `Following up on the previous point: ${lastAssistant?.text || "I can expand on the current analytics or recommend the top action."}`,
@@ -604,7 +1373,7 @@ const generateAnswer = async ({ question, userId, context = {} }) => {
   }
 
   if (payload?.answer) {
-    const isFirstAssistant = (memory || []).filter((m) => m.role === "assistant").length === 0;
+    const isFirstAssistant = (memoryTurns || []).filter((m) => m.role === "assistant").length === 0;
     if (!OPENAI_API_KEY && isFirstAssistant && !/^hi\b/i.test(payload.answer)) {
       payload.answer = `Hi - ${payload.answer}`;
     }
@@ -619,7 +1388,8 @@ const generateAnswer = async ({ question, userId, context = {} }) => {
         insights,
         latest,
         alerts,
-        memory,
+        memory: memoryTurns,
+        memoryState: conversationState,
       });
 
       if (humanized?.reply) {
@@ -639,11 +1409,43 @@ const generateAnswer = async ({ question, userId, context = {} }) => {
     };
   }
 
+  if (!payload.ai?.provider || payload.ai.provider !== "openai") {
+    const localHuman = humanizeLocalReply({
+      payload,
+      parsed,
+      insights,
+      latest,
+      alerts,
+      prediction,
+      rootCause,
+      tips,
+      question: qRaw,
+    });
+
+    if (localHuman?.reply) {
+      payload.answer = localHuman.reply;
+      payload.tone = localHuman.tone || payload.tone || "friendly";
+      if (localHuman.followUp) payload.followUp = localHuman.followUp;
+    }
+  }
+
   payload.aiMode = payload.ai?.provider === "openai" ? "enhanced" : "local";
 
-  payload.confidence = computeConfidence(payload.intent, parsed, insights, memory.length > 0);
+  payload.confidence = computeConfidence(payload.intent, parsed, insights, memoryTurns.length > 0);
 
   addToMemory(userId, "assistant", payload.answer || JSON.stringify(payload));
+    await persistConversationTurn({
+      userId,
+      question: qRaw,
+      answer: payload.answer || "",
+      intent: payload.intent || "general_help",
+      tone: payload.tone || "friendly",
+      followUp: payload.followUp || "",
+      topics: extractTopics(qRaw, payload.intent),
+      language: detectLanguageStyle(qRaw),
+      displayName: identity.displayName,
+      preferredName: identity.preferredName,
+    });
 
   return { ...payload, conversation: getMemory(userId).slice(-6), insights };
 };

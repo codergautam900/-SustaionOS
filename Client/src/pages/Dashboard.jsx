@@ -20,7 +20,6 @@ import EnergyWaterCharts from "../components/dashboard/EnergyWaterCharts";
 import AlertsPanel from "../components/dashboard/AlertsPanel";
 import SuggestionsPanel from "../components/dashboard/SuggestionsPanel";
 import DashboardSkeleton from "../components/skeleton/DashboardSkeleton";
-import AIChatWidget from "../components/ai/AIChatWidget";
 import PredictionCard from "../components/dashboard/PredictionCard";
 import ExecutiveInsightsPanel from "../components/dashboard/ExecutiveInsightsPanel";
 import { apiUrl } from "../utils/api";
@@ -344,7 +343,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <AIChatWidget />
     </div>
   );
 };

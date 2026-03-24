@@ -34,8 +34,26 @@ const getInsights = async (records = []) => {
   return postJson("/insights", { records });
 };
 
+const trainModel = async (records = []) => {
+  return postJson("/train", { records });
+};
+
+const getModelStatus = async () => {
+  if (typeof fetch !== "function" || !baseUrl) return null;
+
+  try {
+    const response = await fetch(`${baseUrl}/model`);
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+};
+
 module.exports = {
   postJson,
   getHealth,
   getInsights,
+  trainModel,
+  getModelStatus,
 };

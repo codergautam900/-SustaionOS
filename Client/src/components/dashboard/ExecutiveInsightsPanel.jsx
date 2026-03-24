@@ -172,6 +172,13 @@ const ExecutiveInsightsPanel = ({ period = "week", compact = false }) => {
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                 {data.model?.version ? `v${data.model.version}` : data.mlStatus?.source || "local"}
               </p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {data.training?.samples != null
+                  ? `Trained on ${data.training.samples} samples`
+                  : data.model?.trainedSamples != null
+                    ? `Trained on ${data.model.trainedSamples} samples`
+                    : "No training data yet"}
+              </p>
             </div>
 
             <div className={metricCardClass}>
@@ -186,6 +193,13 @@ const ExecutiveInsightsPanel = ({ period = "week", compact = false }) => {
                 {data.signalBreakdown?.usageConsistency != null
                   ? `Consistency ${data.signalBreakdown.usageConsistency}%`
                   : "Model certainty"}
+              </p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {data.model?.fitScore != null
+                  ? `Fit score ${data.model.fitScore}%`
+                  : data.training?.metrics?.energy?.r2 != null
+                    ? `Energy R² ${data.training.metrics.energy.r2}`
+                    : "Training metrics pending"}
               </p>
             </div>
 

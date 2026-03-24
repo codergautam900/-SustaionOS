@@ -34,7 +34,7 @@ exports.ask = async (req, res, next) => {
     const answer = await aiService.generateAnswer({
       question: question.toString(),
       userId,
-      context: { latest, history, alerts, skipLLM: Boolean(skipLLM) },
+      context: { latest, history, alerts, skipLLM: Boolean(skipLLM), user: req.user },
     });
 
     return res.json(answer);

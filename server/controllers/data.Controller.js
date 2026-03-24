@@ -24,12 +24,12 @@ const syncSensorHeartbeat = async (userId, payload) => {
   if (payload.latitude != null) update.latitude = Number(payload.latitude);
   if (payload.longitude != null) update.longitude = Number(payload.longitude);
 
-  return SensorDevice.findOneAndUpdate(
-    { userId, sensorId },
-    { $set: update, $setOnInsert: { userId, sensorId } },
-    { new: true, upsert: true }
-  );
-};
+    return SensorDevice.findOneAndUpdate(
+      { userId, sensorId },
+      { $set: update, $setOnInsert: { userId, sensorId } },
+      { upsert: true, returnDocument: "after" }
+    );
+  };
 
 const sendData = async (req, res) => {
   try {

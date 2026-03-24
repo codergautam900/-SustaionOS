@@ -19,6 +19,7 @@ import {
   RefreshCw,
   ShieldAlert,
   Sparkles,
+  Mic,
 } from "lucide-react";
 import { getAuthToken } from "../utils/auth";
 import { apiUrl } from "../utils/api";
@@ -41,6 +42,10 @@ const formatDateTime = (value) => {
 const safeNumber = (value) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
+};
+
+const openAssistantMode = (mode) => {
+  window.dispatchEvent(new CustomEvent("sustainos:ai-mode", { detail: { mode, open: true } }));
 };
 
 const Profile = () => {
@@ -359,6 +364,20 @@ const Profile = () => {
             >
               <Target size={18} />
               Dashboard
+            </button>
+            <button
+              onClick={() => openAssistantMode("telemetry")}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 font-medium shadow-sm"
+            >
+              <Mic size={18} />
+              Voice Data
+            </button>
+            <button
+              onClick={() => openAssistantMode("profile")}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300 font-medium shadow-sm"
+            >
+              <Sparkles size={18} />
+              Voice Profile
             </button>
           </div>
         </div>

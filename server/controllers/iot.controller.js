@@ -33,7 +33,7 @@ const syncSensor = async (userId, payload) => {
       },
       $setOnInsert: { userId, sensorId },
     },
-    { new: true, upsert: true }
+    { upsert: true, returnDocument: "after" }
   );
 
   return sensor;

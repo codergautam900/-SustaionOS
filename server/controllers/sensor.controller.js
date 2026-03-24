@@ -162,7 +162,7 @@ exports.registerSensor = async (req, res) => {
           sensorId: String(sensorId).trim(),
         },
       },
-      { new: true, upsert: true }
+      { upsert: true, returnDocument: "after" }
     );
 
     await maybeNotifySensorHealth(req.user._id, sensor);
@@ -264,7 +264,7 @@ exports.ingestSensorTelemetry = async (req, res) => {
           sensorId: String(sensorId).trim(),
         },
       },
-      { new: true, upsert: true }
+      { upsert: true, returnDocument: "after" }
     );
 
     await maybeNotifySensorHealth(req.user._id, sensor);

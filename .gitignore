@@ -16,6 +16,7 @@ dist
 Client/dist
 ml_service/__pycache__
 ml_service/*.pyc
+ml_service/model_state.json
 
 # Logs
 npm-debug.log*

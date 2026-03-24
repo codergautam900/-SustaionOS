@@ -94,6 +94,7 @@ const PredictionCard = () => {
             <span>Avg energy {pred.predictedEnergyAvg}</span>
             <span>Avg water {pred.predictedWaterAvg}</span>
             {pred.confidence != null ? <span>Confidence {pred.confidence}%</span> : null}
+            {pred.model?.trainedSamples != null ? <span>Trained {pred.model.trainedSamples}</span> : null}
           </div>
         </div>
       )}

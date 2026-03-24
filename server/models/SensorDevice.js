@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const sensorDeviceSchema = new mongoose.Schema(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     sensorId: { type: String, required: true },
     name: { type: String, default: "" },
     building: { type: String, default: "" },

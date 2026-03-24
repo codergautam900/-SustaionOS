@@ -46,6 +46,10 @@ const intents = {
   "building","floor","site","campus","property","location"
  ],
 
+ operations: [
+  "operations","operation","facility","facilities","maintenance","uptime","downtime","asset","assets","equipment","hvac","occupancy","workflow","audit","compliance","sla","incident","shift","service","budget","procurement","industry"
+ ],
+
  cause: [
  "cause","reason","why","problem","issue","root"],
 
@@ -54,7 +58,7 @@ const intents = {
 
  ,
  smalltalk: [
-  "hi","hello","hey","thanks","thank you","how are you","what can you do","who are you"
+  "hi","hello","hey","thanks","thank you","how are you","what can you do","who are you","good morning","good afternoon","good evening","what's up","whats up","how was your day","how is your day","tell me a joke"
  ]
 
 
