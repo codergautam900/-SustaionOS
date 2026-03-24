@@ -4,5 +4,6 @@ const auth = require("../middleware/authMiddleware");
 
 // Require authentication and return user-scoped alerts
 router.get("/", auth, ctrl.getAlerts);
+router.patch("/:id", auth, ctrl.updateAlert);
 
 module.exports = router;

@@ -1,107 +1,95 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState } from "react";
 import Card from "../ui/Card";
-import { Zap, Droplet } from "lucide-react";
-import { ThemeContext } from "../../context/ThemeContext";
+import { Zap, Droplet, TrendingUp } from "lucide-react";
 
-// 🔥 Smooth Counter Animation
-const AnimatedCounter = ({ value = 0, duration = 1000, unit }) => {
+const AnimatedCounter = ({ value = 0, duration = 900, unit = "" }) => {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    let start = 0;
+    let frame = 0;
+    const steps = Math.max(1, Math.floor(duration / 30));
+    const increment = value / steps;
 
     if (!value) {
       setCount(0);
-      return;
+      return undefined;
     }
 
-    const increment = value / (duration / 30);
-
     const timer = setInterval(() => {
-      start += increment;
+      frame += 1;
+      const next = Math.min(value, Math.round(increment * frame));
+      setCount(next);
 
-      if (start >= value) {
-        start = value;
+      if (frame >= steps || next >= value) {
         clearInterval(timer);
+        setCount(value);
       }
-
-      setCount(Math.floor(start));
     }, 30);
 
     return () => clearInterval(timer);
   }, [value, duration]);
 
   return (
-    <span className="font-bold text-2xl text-gray-900 dark:text-white">
-      {count} {unit}
+    <span className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+      {count}
+      <span className="ml-2 text-sm font-semibold text-gray-500 dark:text-gray-400">{unit}</span>
     </span>
   );
 };
 
-const LiveStats = ({ water = 0, energy = 0 }) => {
-  const { darkMode } = useContext(ThemeContext);
+const StatCard = ({ title, value, unit, icon: Icon, accent, note }) => {
+  return (
+    <Card className="relative overflow-hidden p-0 border border-gray-200 dark:border-gray-800 bg-white dark:bg-cardBg">
+      <div className={`absolute inset-x-0 top-0 h-1 ${accent}`} />
+      <div className="relative p-5 md:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
+            <div className="mt-2">
+              <AnimatedCounter value={value} unit={unit} />
+            </div>
+          </div>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200">
+            <Icon size={22} />
+          </div>
+        </div>
 
+        <div className="mt-5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
+            <TrendingUp size={14} />
+            {note}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+const LiveStats = ({ water = 0, energy = 0 }) => {
   const stats = [
     {
-      id: 1,
       title: "Energy Usage",
       value: energy,
       unit: "kWh",
       icon: Zap,
-      color: "text-yellow-400",
-      bg: "bg-yellow-500/10",
+      accent: "bg-gradient-to-r from-emerald-400 to-lime-500",
+      note: energy > 400 ? "Above normal trend" : "Healthy operating range",
     },
     {
-      id: 2,
       title: "Water Usage",
       value: water,
       unit: "L",
       icon: Droplet,
-      color: "text-blue-400",
-      bg: "bg-blue-500/10",
+      accent: "bg-gradient-to-r from-sky-400 to-blue-500",
+      note: water > 2000 ? "Check for waste or leakage" : "Usage looks stable",
     },
   ];
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-
-      {stats.map((stat) => {
-        const Icon = stat.icon;
-
-        return (
-          <Card
-            key={stat.id}
-            className={`
-              flex items-center gap-4 p-5 rounded-2xl
-              transition-all duration-300
-              hover:scale-[1.04] hover:shadow-2xl
-              ${darkMode
-                ? "bg-cardBg border border-gray-800"
-                : "bg-white border border-gray-200"}
-            `}
-          >
-            {/* ICON */}
-            <div
-              className={`
-                w-14 h-14 flex items-center justify-center rounded-xl
-                ${stat.bg} ${stat.color}
-              `}
-            >
-              <Icon size={26} />
-            </div>
-
-            {/* CONTENT */}
-            <div className="flex flex-col">
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
-                {stat.title}
-              </p>
-
-              <AnimatedCounter value={stat.value} unit={stat.unit} />
-            </div>
-          </Card>
-        );
-      })}
-
+      {stats.map((stat) => (
+        <StatCard key={stat.title} {...stat} />
+      ))}
     </div>
   );
 };

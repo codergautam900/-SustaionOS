@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import Card from "../ui/Card";
 import { ThemeContext } from "../../context/ThemeContext";
+import { getAuthToken } from "../../utils/auth";
 
 const API = "http://localhost:5000";
 
@@ -14,8 +15,8 @@ const PredictionCard = () => {
     const fetchPred = async () => {
       setErr(null);
       try {
-        const user = JSON.parse(localStorage.getItem("user") || "null");
-        if (!user?.token) {
+        const token = getAuthToken();
+        if (!token) {
           setErr("Unauthorized");
           setLoading(false);
           return;
@@ -23,7 +24,7 @@ const PredictionCard = () => {
 
         const res = await fetch(`${API}/api/ai/forecast`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${user.token}`, "Content-Type": "application/json" },
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         });
 
         if (!res.ok) {

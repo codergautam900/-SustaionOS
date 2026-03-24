@@ -1,22 +1,21 @@
 const router = require("express").Router();
-const Data = require("../models/Data"); // ✅ MISSING
-const { sendData, getHistory } = require("../controllers/data.controller");
+const Data = require("../models/Data");
+const { sendData, getHistory } = require("../controllers/data.Controller");
 const authMiddleware = require("../middleware/authMiddleware");
 const validate = require("../middleware/validate.middleware");
 
-// 🔒 Protect all routes
 router.use(authMiddleware);
 
-// 🔥 REAL DATA FOR DASHBOARD (user-specific)
 router.get("/", async (req, res) => {
   try {
-    const latest = await Data.findOne({ userId: req.user._id }).sort({ createdAt: -1 }); // ✅ createdAt
+    const latest = await Data.findOne({ userId: req.user._id }).sort({ createdAt: -1 });
 
     if (!latest) {
       return res.json({
         energy: 0,
         water: 0,
         building: "No Data Available",
+        location: "",
       });
     }
 
@@ -24,18 +23,16 @@ router.get("/", async (req, res) => {
       energy: latest.energy,
       water: latest.water,
       building: latest.building,
-      timestamp: latest.createdAt, // ✅ updated
+      location: latest.location || "",
+      timestamp: latest.createdAt,
     });
   } catch (err) {
-    console.error("❌ Dashboard Error:", err);
+    console.error("Dashboard Error:", err);
     res.status(500).json({ msg: "Server Error" });
   }
 });
 
-// 📊 HISTORY
 router.get("/history", getHistory);
-
-// 📥 ADD DATA
 router.post("/", validate, sendData);
 
 module.exports = router;

@@ -1,5 +1,6 @@
 const Data = require("../models/Data");
 const scoreService = require("../services/sustainabilityScore.engine");
+const executiveInsights = require("../services/executiveInsights.service");
 
 // helper to compute startDate from period
 const computeStartDate = (period) => {
@@ -101,6 +102,20 @@ exports.getTrend = async (req, res, next) => {
         };
       });
     res.json(trend);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get executive insights and action plan (user-specific)
+exports.getInsights = async (req, res, next) => {
+  try {
+    const userId = req.user && req.user._id;
+    if (!userId) return res.status(401).json({ msg: "Unauthorized" });
+
+    const { period } = req.query;
+    const insights = await executiveInsights.getExecutiveInsights(userId, period || "week");
+    res.json(insights);
   } catch (err) {
     next(err);
   }

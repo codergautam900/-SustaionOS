@@ -1,0 +1,258 @@
+const Data = require("../models/Data");
+const scoreService = require("./sustainabilityScore.engine");
+
+const ENERGY_RATE = 8;
+const WATER_RATE = 0.02;
+const CARBON_FACTOR = 0.82;
+
+const toNumber = (value) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const getWindowDays = (period) => {
+  if (!period) return 7;
+  if (period === "week") return 7;
+  if (period === "month") return 30;
+  if (period === "year") return 365;
+
+  const parsed = Number.parseInt(period, 10);
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return parsed <= 12 ? parsed * 30 : parsed;
+  }
+
+  return 7;
+};
+
+const getWindowStart = (daysAgo) => {
+  const start = new Date();
+  start.setDate(start.getDate() - daysAgo);
+  return start;
+};
+
+const aggregateMetrics = (records = []) => {
+  const totals = records.reduce(
+    (acc, item) => {
+      acc.energy += toNumber(item.energy);
+      acc.water += toNumber(item.water);
+      return acc;
+    },
+    { energy: 0, water: 0 }
+  );
+
+  const latest = records[0] || null;
+  const count = records.length;
+  const avgEnergy = count ? totals.energy / count : 0;
+  const avgWater = count ? totals.water / count : 0;
+
+  return { ...totals, count, avgEnergy, avgWater, latest };
+};
+
+const buildBuildingBenchmarks = (records = []) => {
+  const maxLoad = records.reduce((max, item) => {
+    const load = toNumber(item.energy) + toNumber(item.water);
+    return load > max ? load : max;
+  }, 0) || 1;
+
+  const byBuilding = records.reduce((acc, item) => {
+    const key = item.building || "Unknown";
+    if (!acc[key]) acc[key] = { building: key, energy: 0, water: 0, count: 0, locations: new Set() };
+    acc[key].energy += toNumber(item.energy);
+    acc[key].water += toNumber(item.water);
+    acc[key].count += 1;
+    if (item.location) acc[key].locations.add(item.location);
+    return acc;
+  }, {});
+
+  return Object.values(byBuilding)
+    .map((item) => ({
+      ...item,
+      locations: Array.from(item.locations || []),
+      totalLoad: item.energy + item.water,
+      efficiency: Math.max(15, Math.round(100 - (item.energy + item.water) / maxLoad * 70)),
+    }))
+    .sort((a, b) => b.totalLoad - a.totalLoad)
+    .slice(0, 5);
+};
+
+const percentChange = (current, previous) => {
+  if (!previous) return null;
+  return ((current - previous) / previous) * 100;
+};
+
+const severityFromScore = (score) => {
+  if (score >= 80) return "Stable";
+  if (score >= 60) return "Watch";
+  if (score >= 40) return "Risk";
+  return "Critical";
+};
+
+const buildActions = ({ energyDelta, waterDelta, latest, score, avgEnergy, avgWater }) => {
+  const actions = [];
+  const latestEnergy = toNumber(latest?.energy);
+  const latestWater = toNumber(latest?.water);
+  const energyTriggered =
+    energyDelta > 10 || (avgEnergy > 0 && latestEnergy > avgEnergy * 1.15);
+  const waterTriggered =
+    waterDelta > 10 || (avgWater > 0 && latestWater > avgWater * 1.15);
+
+  if (energyTriggered) {
+    actions.push({
+      title: "Reduce peak energy load",
+      impact: "High",
+      reason:
+        energyDelta > 10
+          ? `Energy usage is up ${energyDelta.toFixed(1)}% against the previous window.`
+          : "Latest reading indicates active energy draw that can be optimized.",
+    });
+  }
+
+  if (waterTriggered) {
+    actions.push({
+      title: "Inspect for water leakage",
+      impact: "High",
+      reason:
+        waterDelta > 10
+          ? `Water usage is up ${waterDelta.toFixed(1)}% against the previous window.`
+          : "Current water reading should be verified for unnecessary consumption.",
+    });
+  }
+
+  if (score < 70) {
+    actions.push({
+      title: "Trigger preventive maintenance",
+      impact: "Medium",
+      reason: "The current sustainability score indicates avoidable waste or equipment drift.",
+    });
+  }
+
+  actions.push({
+    title: "Automate critical alerts",
+    impact: "Medium",
+    reason: "Escalate high-severity spikes to facility owners before they become repeat losses.",
+  });
+
+  return actions.slice(0, 4);
+};
+
+exports.getExecutiveInsights = async (userId, period = "week") => {
+  const windowDays = getWindowDays(period);
+  const currentStart = getWindowStart(windowDays);
+  const previousStart = getWindowStart(windowDays * 2);
+
+  const records = await Data.find({
+    userId,
+    timestamp: { $gte: previousStart },
+  }).sort({ timestamp: -1 });
+
+  const currentRecords = records.filter((item) => new Date(item.timestamp || item.createdAt) >= currentStart);
+  const previousRecords = records.filter((item) => {
+    const ts = new Date(item.timestamp || item.createdAt);
+    return ts >= previousStart && ts < currentStart;
+  });
+
+  const current = aggregateMetrics(currentRecords);
+  const previous = aggregateMetrics(previousRecords);
+  const buildingBenchmarks = buildBuildingBenchmarks(currentRecords.length ? currentRecords : records);
+  const scoreSnapshot = await scoreService.calculateScore(userId);
+
+  const currentDailyEnergy = current.count ? current.energy / Math.max(1, windowDays) : 0;
+  const previousDailyEnergy = previous.count ? previous.energy / Math.max(1, windowDays) : 0;
+  const currentDailyWater = current.count ? current.water / Math.max(1, windowDays) : 0;
+  const previousDailyWater = previous.count ? previous.water / Math.max(1, windowDays) : 0;
+
+  const energyDelta = percentChange(currentDailyEnergy, previousDailyEnergy);
+  const waterDelta = percentChange(currentDailyWater, previousDailyWater);
+
+  const score = scoreSnapshot?.score ?? Math.max(
+    0,
+    Math.min(100, Math.round(100 - currentDailyEnergy / 10 - currentDailyWater / 50))
+  );
+  const carbon = Math.round(current.energy * CARBON_FACTOR);
+  const estimatedCost = Math.round(current.energy * ENERGY_RATE + current.water * WATER_RATE);
+
+  const excessEnergy = Math.max(0, currentDailyEnergy - previousDailyEnergy);
+  const excessWater = Math.max(0, currentDailyWater - previousDailyWater);
+  const rawMonthlySavings = Math.round(excessEnergy * 30 * ENERGY_RATE + excessWater * 30 * WATER_RATE);
+  const savingsCap = Math.max(1000, Math.round(estimatedCost * 1.5));
+  const monthlySavings = Math.max(0, Math.min(rawMonthlySavings, savingsCap));
+
+  const normalizeRisk = (value) => {
+    const risk = (value || "").toString().toUpperCase();
+    if (risk === "LOW") return "Low";
+    if (risk === "MEDIUM") return "Moderate";
+    if (risk === "HIGH") return "High";
+    if (risk === "SEVERE") return "Critical";
+    return score >= 80 ? "Low" : score >= 60 ? "Moderate" : score >= 40 ? "High" : "Critical";
+  };
+
+  const riskLevel = normalizeRisk(scoreSnapshot?.risk);
+
+  const latest = current.latest;
+  const actions = buildActions({
+    energyDelta: energyDelta || 0,
+    waterDelta: waterDelta || 0,
+    latest,
+    score,
+    avgEnergy: current.avgEnergy,
+    avgWater: current.avgWater,
+  });
+
+  const describeDelta = (value) => {
+    if (value == null) return "not comparable";
+    const direction = value >= 0 ? "above" : "below";
+    return `${Math.abs(value).toFixed(1)}% ${direction}`;
+  };
+
+  const summary = current.count
+    ? `Monitoring ${current.count} records across the last ${windowDays} days. Energy is ${describeDelta(energyDelta)} the previous window, while water is ${describeDelta(waterDelta)} the baseline.`
+    : "No telemetry is available yet for this time window.";
+
+  const nextBestAction =
+    riskLevel === "Critical"
+      ? "Escalate immediately and inspect the active load or leakage source."
+      : energyDelta > 10 || waterDelta > 10
+        ? "Tune consumption thresholds and review the largest spike first."
+        : "Keep current settings and continue monitoring for drift.";
+
+  return {
+    period,
+    windowDays,
+    totalRecords: current.count,
+    current: {
+      energy: current.energy,
+      water: current.water,
+      avgEnergy: Math.round(current.avgEnergy),
+      avgWater: Math.round(current.avgWater),
+    },
+    latestReading: scoreSnapshot?.usage
+      ? {
+          building: latest?.building || "Unknown",
+          location: latest?.location || "",
+          energy: toNumber(scoreSnapshot.usage.energy),
+          water: toNumber(scoreSnapshot.usage.water),
+          timestamp: latest?.timestamp || latest?.createdAt || null,
+        }
+      : null,
+    previous: {
+      energy: previous.energy,
+      water: previous.water,
+      avgEnergy: Math.round(previous.avgEnergy),
+      avgWater: Math.round(previous.avgWater),
+    },
+    deltas: {
+      energy: energyDelta == null ? null : Number(energyDelta.toFixed(1)),
+      water: waterDelta == null ? null : Number(waterDelta.toFixed(1)),
+    },
+    score,
+    riskLevel,
+    statusLabel: severityFromScore(score),
+    carbon,
+    estimatedCost,
+    monthlySavingsPotential: monthlySavings,
+    summary,
+    nextBestAction,
+    priorityActions: actions,
+    buildingBenchmarks,
+  };
+};

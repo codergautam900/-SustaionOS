@@ -18,13 +18,12 @@ app.use("/api/carbon", require("./routes/carbon.routes"));
 app.use("/api/score", require("./routes/score.routes"));
 app.use("/api/report", require("./routes/report.routes"));
 app.use("/api/ai", require("./routes/ai.routes"));
+app.use("/api/notifications", require("./routes/notification.routes"));
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/settings", require("./routes/settings.routes"));
 app.use("/api/user", require("./routes/user.routes"));
+app.use("/api/analytics", require("./routes/analytics.routes"));
 
 app.use(require("./middleware/error.middleware"));
-
-// Analytics
-app.use("/api/analytics", require("./routes/analytics.routes"));
 
 module.exports = app;

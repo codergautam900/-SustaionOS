@@ -67,7 +67,7 @@ exports.generateFinalAnswer = async ({
     const finalText = `
 ${base}
 
-${anomaly?.detected ? `🚨 Anomaly Detected: ${anomaly.reason}` : "✅ No anomaly detected"}
+${anomaly?.status ? `🚨 Anomaly Detected: ${anomaly.reason}` : "✅ No anomaly detected"}
 
 🔍 Root Cause:
 ${cause}

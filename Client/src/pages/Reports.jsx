@@ -1,17 +1,21 @@
 import React, { useEffect, useState } from "react";
 import Card from "../components/ui/Card";
 import { Download } from "lucide-react";
+import { getAuthToken } from "../utils/auth";
 
 const Reports = () => {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pdfLoading, setPdfLoading] = useState(false);
 
-  // Fetch report data from backend
   useEffect(() => {
     const fetchReportData = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/report/data");
+        const token = getAuthToken();
+        const res = await fetch("http://localhost:5000/api/report/data", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
         if (!res.ok) throw new Error("Failed to fetch report data");
         const data = await res.json();
         setReportData(data);
@@ -22,15 +26,17 @@ const Reports = () => {
         setLoading(false);
       }
     };
+
     fetchReportData();
   }, []);
 
-  // Export PDF
   const handleExportPDF = async () => {
     setPdfLoading(true);
     try {
+      const token = getAuthToken();
       const res = await fetch("http://localhost:5000/api/report/pdf", {
         method: "GET",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 
       if (!res.ok) throw new Error("Failed to generate PDF");
@@ -51,18 +57,15 @@ const Reports = () => {
     }
   };
 
-  if (loading)
+  if (loading) {
     return <p className="text-gray-600 dark:text-gray-400">Loading report...</p>;
+  }
 
   return (
     <div className="space-y-8">
-
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">
-            Sustainability Reports
-          </h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Sustainability Reports</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Executive summary & downloadable reports
           </p>
@@ -80,42 +83,38 @@ const Reports = () => {
         </button>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            Total Energy Consumption
-          </p>
-          <h2 className="text-2xl font-semibold mt-2">
-            {reportData?.totalEnergy} kWh
-          </h2>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Total Energy Consumption</p>
+          <h2 className="text-2xl font-semibold mt-2">{reportData?.totalEnergy || 0} kWh</h2>
         </Card>
 
         <Card>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            Total Water Usage
-          </p>
-          <h2 className="text-2xl font-semibold mt-2">
-            {reportData.totalWater} L
-          </h2>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Total Water Usage</p>
+          <h2 className="text-2xl font-semibold mt-2">{reportData?.totalWater || 0} L</h2>
         </Card>
 
         <Card>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            Carbon Emission
-          </p>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Carbon Emission</p>
           <h2 className="text-2xl font-semibold text-red-500 mt-2">
-            {reportData.carbon} kg CO₂
+            {reportData?.carbon || 0} kg CO2
           </h2>
         </Card>
       </div>
 
-      {/* Monthly Breakdown */}
-      {reportData.monthly && (
+      {reportData?.topBuilding && (
         <Card>
-          <h3 className="text-lg font-semibold mb-4">
-            Monthly Sustainability Overview
-          </h3>
+          <h3 className="text-lg font-semibold mb-4">Highest Consumption Building</h3>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
+            {reportData.topBuilding.building} consumed {reportData.topBuilding.energy} kWh and{" "}
+            {reportData.topBuilding.water} L.
+          </p>
+        </Card>
+      )}
+
+      {reportData?.monthly && (
+        <Card>
+          <h3 className="text-lg font-semibold mb-4">Monthly Sustainability Overview</h3>
           <div className="space-y-4 text-sm text-gray-600 dark:text-gray-400">
             {reportData.monthly.map((m, idx) => (
               <div
@@ -132,14 +131,10 @@ const Reports = () => {
         </Card>
       )}
 
-      {/* Recommendation Summary */}
       <Card>
-        <h3 className="text-lg font-semibold mb-4">
-          AI Executive Recommendation
-        </h3>
-
+        <h3 className="text-lg font-semibold mb-4">AI Executive Recommendation</h3>
         <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
-          {reportData.recommendation}
+          {reportData?.recommendation || "No recommendation available yet."}
         </p>
       </Card>
     </div>

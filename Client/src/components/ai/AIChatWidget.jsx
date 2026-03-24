@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useContext } from "react";
 import { MessageCircle, X } from "lucide-react";
 import { ThemeContext } from "../../context/ThemeContext";
+import { getAuthToken } from "../../utils/auth";
 
 const suggestions = [
   "Why energy usage high?",
@@ -53,7 +54,7 @@ const AIChatWidget = () => {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
 
       const res = await fetch("http://localhost:5000/api/ai/query", {
         method: "POST",
@@ -87,7 +88,8 @@ const AIChatWidget = () => {
 
       const aiMessage = {
         sender: "ai",
-        text: responseText
+        text: responseText,
+        meta: data
       };
 
       setMessages(prev => {
@@ -158,8 +160,8 @@ const AIChatWidget = () => {
               <button
                 onClick={async () => {
                   // fetch forecast and append result as AI message
-                  const user = JSON.parse(localStorage.getItem("user") || "null");
-                  if (!user?.token) {
+                  const token = getAuthToken();
+                  if (!token) {
                     setMessages(prev => [...prev, { sender: "ai", text: "Unauthorized — please login to fetch forecast." }].slice(-20));
                     return;
                   }
@@ -168,7 +170,7 @@ const AIChatWidget = () => {
                   try {
                     const res = await fetch("http://localhost:5000/api/ai/forecast", {
                       method: "POST",
-                      headers: { Authorization: `Bearer ${user.token}`, "Content-Type": "application/json" },
+                      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
                     });
 
                     if (!res.ok) {
@@ -178,7 +180,7 @@ const AIChatWidget = () => {
                     }
 
                     const json = await res.json();
-                    const p = json.prediction || json.prediction || {};
+                    const p = json.prediction || {};
                     const text = `Forecast — Next hour: Energy ${p.predictedEnergyNextHour || p.predictedEnergyAvg || "N/A"}, Water ${p.predictedWaterNextHour || p.predictedWaterAvg || "N/A"}\nNext day: Energy ${p.predictedEnergyNextDay || "N/A"}, Water ${p.predictedWaterNextDay || "N/A"}`;
 
                     setMessages(prev => [...prev, { sender: "ai", text }].slice(-20));
@@ -225,6 +227,55 @@ const AIChatWidget = () => {
                 }`}
               >
                 {msg.text}
+                {msg.sender === "ai" && msg.meta?.comparison?.text && (
+                  <div className="mt-2 text-xs opacity-80">
+                    {msg.meta.comparison.text}
+                  </div>
+                )}
+                {msg.sender === "ai" && Array.isArray(msg.meta?.actionPlan) && msg.meta.actionPlan.length > 0 && (
+                  <div className="mt-2 text-xs space-y-1 opacity-90">
+                    <div className="font-semibold">Top actions:</div>
+                    {msg.meta.actionPlan.slice(0, 2).map((item, i) => (
+                      <div key={i}>- {item.title}: {item.reason}</div>
+                    ))}
+                  </div>
+                )}
+                {msg.sender === "ai" && msg.meta?.report && (
+                  <div className="mt-2 text-xs space-y-1 opacity-90">
+                    <div className="font-semibold">Report snapshot:</div>
+                    <div>Score: {msg.meta.report.score}%</div>
+                    <div>Carbon: {msg.meta.report.carbon} kg</div>
+                    <div>Savings: Rs. {msg.meta.report.savings}</div>
+                    {msg.meta.report.building && <div>Top building: {msg.meta.report.building}</div>}
+                  </div>
+                )}
+                {msg.sender === "ai" && Array.isArray(msg.meta?.benchmark) && msg.meta.benchmark.length > 0 && (
+                  <div className="mt-2 text-xs space-y-1 opacity-90">
+                    <div className="font-semibold">Benchmark:</div>
+                    {msg.meta.benchmark.slice(0, 2).map((item, i) => (
+                      <div key={i}>- {item.building}: {item.efficiency}%</div>
+                    ))}
+                  </div>
+                )}
+                {msg.sender === "ai" && msg.meta?.diagnosis?.cause && (
+                  <div className="mt-2 text-xs space-y-1 opacity-90">
+                    <div className="font-semibold">Diagnosis:</div>
+                    <div>{msg.meta.diagnosis.cause}</div>
+                  </div>
+                )}
+                {msg.sender === "ai" && msg.meta?.current && (
+                  <div className="mt-2 text-xs space-y-1 opacity-90">
+                    <div className="font-semibold">Current snapshot:</div>
+                    <div>Building: {msg.meta.current.building}</div>
+                    <div>Energy: {msg.meta.current.energy}</div>
+                    <div>Water: {msg.meta.current.water}</div>
+                  </div>
+                )}
+                {msg.sender === "ai" && typeof msg.meta?.confidence === "number" && (
+                  <div className="mt-2 text-xs opacity-70">
+                    Confidence: {msg.meta.confidence}%
+                  </div>
+                )}
               </div>
 
             ))}

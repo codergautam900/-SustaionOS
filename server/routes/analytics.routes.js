@@ -10,5 +10,6 @@ router.get("/summary", controller.getAnalytics);
 router.get("/score", controller.getScore);
 router.get("/trend", controller.getTrend);
 router.get("/history", controller.getHistory);
+router.get("/insights", controller.getInsights);
 
 module.exports = router;

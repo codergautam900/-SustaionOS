@@ -92,10 +92,10 @@ const History = () => {
 
   // Export CSV
   const exportCSV = () => {
-    const rows = [["Date", "Building", "Energy", "Water"]];
+    const rows = [["Date", "Building", "Location", "Energy", "Water"]];
     filteredLogs.forEach((log) => {
       const date = new Date(log.createdAt || log.timestamp || Date.now()).toLocaleDateString();
-      rows.push([date, log.building, log.energy, log.water]);
+      rows.push([date, log.building, log.location || "", log.energy, log.water]);
     });
     const csv = "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
     const link = document.createElement("a");
@@ -177,6 +177,7 @@ const History = () => {
             <tr>
               <th className="px-6 py-4">Date</th>
               <th className="px-6 py-4">Building</th>
+              <th className="px-6 py-4">Location</th>
               <th className="px-6 py-4">Energy</th>
               <th className="px-6 py-4">Water</th>
               <th className="px-6 py-4">Status</th>
@@ -190,6 +191,7 @@ const History = () => {
                 <tr key={log._id} className="border-b hover:bg-gray-200/30">
                   <td className="px-6 py-4">{date}</td>
                   <td className="px-6 py-4">{log.building}</td>
+                  <td className="px-6 py-4">{log.location || "-"}</td>
                   <td className="px-6 py-4">{log.energy} kWh</td>
                   <td className="px-6 py-4">{log.water} L</td>
                   <td className="px-6 py-4">

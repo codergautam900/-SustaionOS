@@ -6,6 +6,12 @@ import Analytics from "../pages/Analytics";
 import History from "../pages/History";
 import Reports from "../pages/Reports";
 import Settings from "../pages/Settings";
+import Alerts from "../pages/Alerts";
+import Notifications from "../pages/Notifications";
+import Incidents from "../pages/Incidents";
+import Impact from "../pages/Impact";
+import Buildings from "../pages/Buildings";
+import Recommendations from "../pages/Recommendations";
 
 import Login from "../pages/Login";
 import Register from "../pages/Register";
@@ -64,6 +70,72 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <PageWrapper>
               <Reports />
+            </PageWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/alerts"
+        element={
+          <ProtectedRoute>
+            <PageWrapper>
+              <Alerts />
+            </PageWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/incidents"
+        element={
+          <ProtectedRoute>
+            <PageWrapper>
+              <Incidents />
+            </PageWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/impact"
+        element={
+          <ProtectedRoute>
+            <PageWrapper>
+              <Impact />
+            </PageWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/buildings"
+        element={
+          <ProtectedRoute>
+            <PageWrapper>
+              <Buildings />
+            </PageWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/recommendations"
+        element={
+          <ProtectedRoute>
+            <PageWrapper>
+              <Recommendations />
+            </PageWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <PageWrapper>
+              <Notifications />
             </PageWrapper>
           </ProtectedRoute>
         }

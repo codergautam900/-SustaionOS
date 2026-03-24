@@ -30,6 +30,22 @@ const intents = {
   "history","previous","past","last","records","log","data"
  ],
 
+ compare: [
+  "compare","comparison","better","worse","vs","versus","trend"
+ ],
+
+ action: [
+  "what should i do","action","next step","next best action","fix","resolve","plan"
+ ],
+
+ report: [
+  "report","summary","overview","executive","insight","dashboard"
+ ],
+
+ building: [
+  "building","floor","site","campus","property","location"
+ ],
+
  cause: [
  "cause","reason","why","problem","issue","root"],
 

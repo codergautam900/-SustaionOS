@@ -4,6 +4,8 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar
 } from "recharts";
 import { ThemeContext } from "../context/ThemeContext";
+import ExecutiveInsightsPanel from "../components/dashboard/ExecutiveInsightsPanel";
+import { getAuthToken } from "../utils/auth";
 
 const Analytics = () => {
   const { darkMode } = useContext(ThemeContext);
@@ -43,7 +45,7 @@ const Analytics = () => {
     setLoading(true);
     setError("");
     try {
-      const token = localStorage.getItem("token"); // ensure token set after login
+      const token = getAuthToken(); // ensure token set after login
       const doFetch = async (url) => {
         const headers = { "Content-Type": "application/json" };
         if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -119,7 +121,7 @@ const Analytics = () => {
         <Card>
           <p className="text-sm text-gray-600 dark:text-gray-400">Carbon Footprint</p>
           <h2 className="text-2xl font-semibold mt-2">
-            {(scoreData.usage?.energy ?? 0) + (scoreData.usage?.water ?? 0)} units
+            {Math.round((scoreData.usage?.energy ?? 0) * 0.82)} kg CO2
           </h2>
         </Card>
         <Card>
@@ -127,6 +129,8 @@ const Analytics = () => {
           <h2 className="text-2xl font-semibold mt-2 text-green-500">{scoreData.score ?? 0}%</h2>
         </Card>
       </div>
+
+      <ExecutiveInsightsPanel period={period} />
 
       <Card className="h-96 flex flex-col">
         <h3 className="text-lg font-semibold mb-4">Energy & Water Trend</h3>

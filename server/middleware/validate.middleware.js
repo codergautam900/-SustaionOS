@@ -1,7 +1,6 @@
 module.exports = (req, res, next) => {
-  let { building, water, energy } = req.body;
+  let { building, location, water, energy } = req.body;
 
-  /* ✅ CHECK EMPTY */
   if (!building || water === undefined || energy === undefined) {
     return res.status(400).json({
       success: false,
@@ -9,8 +8,8 @@ module.exports = (req, res, next) => {
     });
   }
 
-  /* ✅ TRIM BUILDING */
   building = building.trim();
+  location = typeof location === "string" ? location.trim() : "";
 
   if (building.length < 2) {
     return res.status(400).json({
@@ -19,11 +18,9 @@ module.exports = (req, res, next) => {
     });
   }
 
-  /* ✅ TYPE CONVERSION */
   water = Number(water);
   energy = Number(energy);
 
-  /* ✅ VALID NUMBER CHECK */
   if (isNaN(water) || isNaN(energy)) {
     return res.status(400).json({
       success: false,
@@ -31,7 +28,6 @@ module.exports = (req, res, next) => {
     });
   }
 
-  /* ✅ NEGATIVE CHECK */
   if (water < 0 || energy < 0) {
     return res.status(400).json({
       success: false,
@@ -39,7 +35,6 @@ module.exports = (req, res, next) => {
     });
   }
 
-  /* ✅ LIMIT CHECK (REALISTIC RANGE) */
   if (water > 100000 || energy > 10000) {
     return res.status(400).json({
       success: false,
@@ -47,9 +42,9 @@ module.exports = (req, res, next) => {
     });
   }
 
-  /* ✅ CLEAN DATA BACK */
   req.body = {
     building,
+    location,
     water,
     energy,
   };

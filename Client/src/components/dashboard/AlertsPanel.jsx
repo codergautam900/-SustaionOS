@@ -1,5 +1,6 @@
 import React from "react";
 import Card from "../ui/Card";
+import { getAuthToken } from "../../utils/auth";
 
 const getStyle = (severity) => {
   const s = (severity || "").toString().toUpperCase();
@@ -13,7 +14,28 @@ const getStyle = (severity) => {
   }
 };
 
-const AlertsPanel = ({ alerts = [] }) => {
+const AlertsPanel = ({ alerts = [], onAlertUpdated }) => {
+  const updateAlert = async (id, status) => {
+    try {
+      const token = getAuthToken();
+      if (!token) return;
+
+      const res = await fetch(`http://localhost:5000/api/alerts/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!res.ok) return;
+      const json = await res.json();
+      if (json?.alert && onAlertUpdated) onAlertUpdated(json.alert);
+    } catch (err) {
+      console.error("Update alert error:", err);
+    }
+  };
 
   if (!alerts.length) {
     return (
@@ -65,7 +87,38 @@ const AlertsPanel = ({ alerts = [] }) => {
                   ? `${alert.severity.charAt(0)}${alert.severity.slice(1).toLowerCase()}`
                   : "Low"}
               </span>
+              {alert.status && (
+                <span className="ml-2 text-xs px-2 py-1 rounded bg-black/20">
+                  {alert.status}
+                </span>
+              )}
             </div>
+
+            <div className="mt-4 flex gap-2 flex-wrap">
+              <button
+                onClick={() => updateAlert(alert._id, "ACKNOWLEDGED")}
+                className="text-xs px-3 py-1 rounded bg-black/20 hover:bg-black/30 transition"
+              >
+                Acknowledge
+              </button>
+              <button
+                onClick={() => updateAlert(alert._id, "RESOLVED")}
+                className="text-xs px-3 py-1 rounded bg-black/20 hover:bg-black/30 transition"
+              >
+                Resolve
+              </button>
+            </div>
+
+            {alert.rootCause && (
+              <p className="mt-3 text-xs opacity-80">
+                Root cause: {alert.rootCause}
+              </p>
+            )}
+            {alert.estimatedLoss ? (
+              <p className="mt-1 text-xs opacity-80">
+                Estimated loss: Rs. {alert.estimatedLoss}
+              </p>
+            ) : null}
 
           </Card>
         ))}

@@ -5,7 +5,19 @@ exports.detect = (water, energy, history = []) => {
         const w = safeNum(water);
         const e = safeNum(energy);
 
-        if (Array.isArray(history) && history.length >= 5) {
+        const thresholdFromHistory = () => {
+            if (!Array.isArray(history) || history.length === 0) return null;
+            const recent = history.slice(0, 10);
+            const avg = (arr) => arr.reduce((s, x) => s + x, 0) / (arr.length || 1);
+            const waterVals = recent.map((r) => safeNum(r.water));
+            const energyVals = recent.map((r) => safeNum(r.energy));
+            return {
+                waterAvg: avg(waterVals),
+                energyAvg: avg(energyVals),
+            };
+        };
+
+        if (Array.isArray(history) && history.length >= 3) {
             const waterVals = history.map((r) => safeNum(r.water));
             const energyVals = history.map((r) => safeNum(r.energy));
 
@@ -33,9 +45,23 @@ exports.detect = (water, energy, history = []) => {
             }
         }
 
+        const fallback = thresholdFromHistory();
+        if (fallback) {
+            const waterTrigger = fallback.waterAvg > 0 && w >= fallback.waterAvg * 1.2;
+            const energyTrigger = fallback.energyAvg > 0 && e >= fallback.energyAvg * 1.2;
+
+            if (waterTrigger && w > e) {
+                return { status: true, reason: "Water Spike", severity: w >= fallback.waterAvg * 1.5 ? "high" : "medium", score: null };
+            }
+
+            if (energyTrigger && e >= w) {
+                return { status: true, reason: "Energy Spike", severity: e >= fallback.energyAvg * 1.5 ? "high" : "medium", score: null };
+            }
+        }
+
         // Fallback thresholds (existing behaviour)
-        if (w > 300) return { status: true, reason: "Water Spike", severity: "high", score: null };
-        if (e > 200) return { status: true, reason: "Energy Spike", severity: "medium", score: null };
+        if (w > 180) return { status: true, reason: "Water Spike", severity: "high", score: null };
+        if (e > 140) return { status: true, reason: "Energy Spike", severity: "medium", score: null };
 
         return { status: false, score: 0 };
     } catch (err) {

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getScore } = require("../controllers/data.controller");
+const { getScore } = require("../controllers/data.Controller");
 const auth = require("../middleware/authMiddleware"); // ✅ important
 
 router.get("/", auth, getScore); // ✅ ONLY THIS

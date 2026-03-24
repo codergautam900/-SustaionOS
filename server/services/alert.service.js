@@ -1,12 +1,25 @@
 const Alert = require("../models/Alert");
 
-exports.createAlert = async ({ userId, building, message, severity }) => {
+exports.createAlert = async ({
+  userId,
+  building,
+  message,
+  severity,
+  status = "OPEN",
+  rootCause = "",
+  estimatedLoss = 0,
+  recommendedAction = "",
+}) => {
   try {
     const alert = await Alert.create({
       userId,
       building,
       message,
-      severity
+      severity,
+      status,
+      rootCause,
+      estimatedLoss,
+      recommendedAction,
     });
 
     return alert;

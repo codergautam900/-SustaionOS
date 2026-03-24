@@ -37,6 +37,16 @@ exports.calculateScore = async (userId) => {
 
     // ✅ User-specific alerts
     const alertCount = await Alert.countDocuments({ userId: objectUserId });
+    const highAlertCount = await Alert.countDocuments({
+      userId: objectUserId,
+      severity: "HIGH",
+      status: { $ne: "RESOLVED" },
+    });
+    const mediumAlertCount = await Alert.countDocuments({
+      userId: objectUserId,
+      severity: "MEDIUM",
+      status: { $ne: "RESOLVED" },
+    });
 
     if (!latest || !stats.length) {
       return {
@@ -70,6 +80,8 @@ exports.calculateScore = async (userId) => {
 
     // 🔥 ALERTS
     penalty += Math.min(alertCount * 4, 20);
+    penalty += Math.min(highAlertCount * 18, 36);
+    penalty += Math.min(mediumAlertCount * 8, 16);
 
     // 🔥 SPIKE DETECTION
     if (latest.water >= maxWater * 0.95) penalty += 10;
@@ -93,6 +105,15 @@ exports.calculateScore = async (userId) => {
     if (score < 45) {
       status = "Critical";
       riskLevel = "SEVERE";
+    }
+
+    if (highAlertCount > 0 && status === "Excellent") {
+      status = "Good";
+      riskLevel = "MEDIUM";
+    }
+    if (highAlertCount > 0 && score < 65) {
+      status = "Moderate";
+      riskLevel = "HIGH";
     }
 
     // ✅ MESSAGE
