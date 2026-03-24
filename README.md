@@ -59,6 +59,11 @@ A short demo video of the platform will be added soon.
 
 ![Settings](screenshots/setting.png)
 
+
+
+💻Profile Page 
+
+![Profile](screenshots/profile.png)
 ---
 
 🧠 Project Vision
