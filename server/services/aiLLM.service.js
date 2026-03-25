@@ -728,6 +728,39 @@ const parseJsonSafe = (text) => {
   }
 };
 
+const extractHumanizedReply = (parsed, rawText = "") => {
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    const preferredKeys = [
+      "reply",
+      "response",
+      "answer",
+      "message",
+      "text",
+      "content",
+      "output",
+      "result",
+    ];
+
+    for (const key of preferredKeys) {
+      const value = parsed[key];
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+    }
+
+    const stringValues = Object.values(parsed).filter((value) => typeof value === "string" && value.trim());
+    if (stringValues.length === 1) {
+      return stringValues[0].trim();
+    }
+  }
+
+  if (typeof rawText === "string" && rawText.trim()) {
+    return rawText.trim();
+  }
+
+  return "";
+};
+
 const buildConversationPrompt = ({
   question,
   payload,
@@ -871,13 +904,14 @@ const humanizeWithOpenAI = async ({ prompt, signal } = {}) => {
   const json = await response.json();
   const rawText = json?.choices?.[0]?.message?.content || extractResponseText(json);
   const parsed = parseJsonSafe(rawText);
+  const reply = extractHumanizedReply(parsed, rawText);
 
-  if (!parsed || !parsed.reply) {
-    throw new Error("OpenAI response did not return valid JSON");
+  if (!reply) {
+    throw new Error("OpenAI response did not return a usable reply");
   }
 
   return {
-    reply: String(parsed.reply).trim(),
+    reply,
     tone: parsed.tone || "friendly",
     followUp: parsed.follow_up || parsed.followUp || "",
     provider: "openai",
@@ -934,13 +968,14 @@ const humanizeWithGemini = async ({ prompt, signal } = {}) => {
       .join("\n")
       .trim() || "";
   const parsed = parseJsonSafe(rawText);
+  const reply = extractHumanizedReply(parsed, rawText);
 
-  if (!parsed || !parsed.reply) {
-    throw new Error("Gemini response did not return valid JSON");
+  if (!reply) {
+    throw new Error("Gemini response did not return a usable reply");
   }
 
   return {
-    reply: String(parsed.reply).trim(),
+    reply,
     tone: parsed.tone || "friendly",
     followUp: parsed.follow_up || parsed.followUp || "",
     provider: "gemini",
@@ -986,13 +1021,14 @@ const humanizeWithOllama = async ({ prompt, signal } = {}) => {
   const json = await response.json();
   const rawText = json?.message?.content || "";
   const parsed = parseJsonSafe(rawText);
+  const reply = extractHumanizedReply(parsed, rawText);
 
-  if (!parsed || !parsed.reply) {
-    throw new Error("Ollama response did not return valid JSON");
+  if (!reply) {
+    throw new Error("Ollama response did not return a usable reply");
   }
 
   return {
-    reply: String(parsed.reply).trim(),
+    reply,
     tone: parsed.tone || "friendly",
     followUp: parsed.follow_up || parsed.followUp || "",
     provider: "ollama",

@@ -73,12 +73,12 @@ const Notifications = () => {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-sm uppercase tracking-[0.25em] text-gray-500 dark:text-gray-400">
             System feed
           </p>
-          <h1 className="text-3xl font-bold mt-2 flex items-center gap-3">
+          <h1 className="mt-2 flex items-center gap-3 text-3xl font-bold sm:text-[2rem]">
             <Bell className="text-primary" size={28} />
             Notifications
           </h1>
@@ -87,17 +87,17 @@ const Notifications = () => {
           </p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex w-full flex-col gap-3 sm:flex-row md:w-auto">
           <button
             onClick={loadNotifications}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 dark:border-gray-800 dark:bg-gray-900 sm:w-auto"
           >
             <RotateCcw size={16} />
             Refresh
           </button>
           <button
             onClick={markAllRead}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-black font-medium"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 font-medium text-black sm:w-auto"
           >
             <CheckCheck size={16} />
             Mark all read
@@ -171,14 +171,14 @@ const Notifications = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
                   <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
                     {item.type}
                   </span>
                   {!item.read && (
                     <button
                       onClick={() => markRead(item._id)}
-                      className="px-3 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black text-sm"
+                      className="w-full rounded-lg bg-black px-3 py-1.5 text-sm text-white dark:bg-white dark:text-black sm:w-auto"
                     >
                       Mark read
                     </button>

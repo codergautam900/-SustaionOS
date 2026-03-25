@@ -162,8 +162,8 @@ const Header = ({ setIsOpen }) => {
             </button>
 
             {alertMenuOpen && (
-              <div className="absolute right-0 mt-3 w-[min(20rem,calc(100vw-1rem))] max-h-[calc(100dvh-5rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-950">
-                <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+              <div className="fixed left-2 right-2 top-[4.75rem] z-50 max-h-[calc(100dvh-6rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-950 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-3 sm:w-[min(20rem,calc(100vw-1rem))]">
+                <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{unreadCount} unread</p>
@@ -180,7 +180,7 @@ const Header = ({ setIsOpen }) => {
                   </button>
                 </div>
 
-                <div className="max-h-80 overflow-y-auto">
+                <div className="max-h-[calc(100dvh-12rem)] overflow-y-auto overscroll-contain">
                   {notifications.slice(0, 4).length === 0 ? (
                     <div className="p-4 text-sm text-gray-500 dark:text-gray-400">No notifications yet.</div>
                   ) : (
