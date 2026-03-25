@@ -1096,10 +1096,10 @@ const AIChatWidget = () => {
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed bottom-3 left-3 right-3 z-[80] flex flex-col items-stretch md:bottom-6 md:left-auto md:right-6 md:items-end">
+    <div className="fixed bottom-3 right-3 z-[80] flex flex-col items-end md:bottom-6 md:right-6">
       {open && (
         <div
-          className={`mb-3 flex w-full max-h-[calc(100dvh-6rem)] flex-col overflow-hidden rounded-[26px] border shadow-[0_24px_80px_rgba(15,23,42,0.28)] backdrop-blur-2xl md:w-[min(336px,calc(100vw-1rem))] ${
+          className={`mb-3 flex w-[min(20rem,calc(100vw-1.25rem))] max-h-[calc(100dvh-8rem)] flex-col overflow-hidden rounded-[26px] border shadow-[0_24px_80px_rgba(15,23,42,0.28)] backdrop-blur-2xl md:w-[min(336px,calc(100vw-1rem))] ${
             darkMode
               ? "border-white/10 bg-slate-950/90 text-white"
               : "border-white/40 bg-white/92 text-slate-900"
