@@ -1452,6 +1452,41 @@ const generateAnswer = async ({ question, userId, context = {} }) => {
     memoryTurns,
     user: context?.user || null,
   });
+  const shouldUseLLMRefinement = !context?.skipLLM && getProviderPreference() !== "local";
+  const refinePayloadWithLLM = async (payload) => {
+    if (!shouldUseLLMRefinement || !payload) return payload;
+
+    try {
+      const humanized = await humanizeWithLLM({
+        question: qRaw,
+        payload,
+        insights,
+        latest,
+        alerts,
+        memory: memoryTurns,
+        memoryState: conversationState || {},
+        understanding,
+        timeoutMs: 15000,
+      });
+
+      if (humanized?.reply) {
+        payload.answer = humanized.reply;
+        payload.ai = providerMessage(humanized.provider, humanized.model);
+        payload.aiMode = payload.ai?.provider && payload.ai.provider !== "local" ? "enhanced" : "local";
+        if (humanized.tone) payload.tone = humanized.tone;
+        if (humanized.followUp) payload.followUp = humanized.followUp;
+      }
+    } catch (err) {
+      console.error("AI refinement failed:", err.message || err);
+      payload.ai = {
+        provider: "local",
+        model: null,
+        error: err.message || "Unknown AI error",
+      };
+    }
+
+    return payload;
+  };
 
   if (humanReply && !parsed.hasEnergy && !parsed.hasWater && !parsed.hasCarbon && !parsed.hasScore && !parsed.hasAlert && !parsed.hasCompare && !parsed.hasAction && !parsed.hasBuilding && !parsed.hasCurrent && !parsed.hasSuggestion) {
     const payload = buildStructuredAnswer({
@@ -1465,6 +1500,8 @@ const generateAnswer = async ({ question, userId, context = {} }) => {
 
     payload.aiMode = "local";
     payload.confidence = 70;
+    await refinePayloadWithLLM(payload);
+
     addToMemory(userId, "assistant", payload.answer || JSON.stringify(payload));
     await persistConversationTurn({
       userId,
@@ -1503,6 +1540,8 @@ const generateAnswer = async ({ question, userId, context = {} }) => {
 
     payload.aiMode = "local";
     payload.confidence = computeConfidence(payload.intent, parsed, insights, memoryTurns.length > 0);
+    await refinePayloadWithLLM(payload);
+
     addToMemory(userId, "assistant", payload.answer || JSON.stringify(payload));
     await persistConversationTurn({
       userId,
