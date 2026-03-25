@@ -6,6 +6,7 @@ import {
 import { ThemeContext } from "../context/ThemeContext";
 import ExecutiveInsightsPanel from "../components/dashboard/ExecutiveInsightsPanel";
 import { getAuthToken } from "../utils/auth";
+import { apiUrl } from "../utils/api";
 
 const Analytics = () => {
   const { darkMode } = useContext(ThemeContext);
@@ -49,7 +50,7 @@ const Analytics = () => {
       const doFetch = async (url) => {
         const headers = { "Content-Type": "application/json" };
         if (token) headers["Authorization"] = `Bearer ${token}`;
-        const res = await fetch(url, { method: "GET", headers, credentials: "include" });
+        const res = await fetch(apiUrl(url), { method: "GET", headers, credentials: "include" });
         if (!res.ok) throw new Error(`${url} returned ${res.status}`);
         return await res.json();
       };
@@ -132,43 +133,47 @@ const Analytics = () => {
 
       <ExecutiveInsightsPanel period={period} />
 
-      <Card className="h-96 flex flex-col">
+      <Card className="h-96 flex flex-col overflow-hidden">
         <h3 className="text-lg font-semibold mb-4">Energy & Water Trend</h3>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={trendData}>
-            <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "#374151" : "#d1d5db"} />
-            <XAxis dataKey="date" stroke={darkMode ? "#9CA3AF" : "#4B5563"} />
-            <YAxis stroke={darkMode ? "#9CA3AF" : "#4B5563"} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: darkMode ? "#111827" : "#ffffff",
-                border: `1px solid ${darkMode ? "#374151" : "#e5e7eb"}`,
-                borderRadius: 10,
-              }}
-            />
-            <Line type="monotone" dataKey="energy" stroke="#22C55E" strokeWidth={3} />
-            <Line type="monotone" dataKey="water" stroke="#3B82F6" strokeWidth={3} />
-          </LineChart>
-        </ResponsiveContainer>
+        <div className="flex-1 min-h-0 min-w-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={trendData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "#374151" : "#d1d5db"} />
+              <XAxis dataKey="date" stroke={darkMode ? "#9CA3AF" : "#4B5563"} />
+              <YAxis stroke={darkMode ? "#9CA3AF" : "#4B5563"} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: darkMode ? "#111827" : "#ffffff",
+                  border: `1px solid ${darkMode ? "#374151" : "#e5e7eb"}`,
+                  borderRadius: 10,
+                }}
+              />
+              <Line type="monotone" dataKey="energy" stroke="#22C55E" strokeWidth={3} />
+              <Line type="monotone" dataKey="water" stroke="#3B82F6" strokeWidth={3} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </Card>
 
-      <Card className="h-96 flex flex-col">
+      <Card className="h-96 flex flex-col overflow-hidden">
         <h3 className="text-lg font-semibold mb-4">Monthly Energy Comparison</h3>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={trendData}>
-            <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "#374151" : "#d1d5db"} />
-            <XAxis dataKey="date" stroke={darkMode ? "#9CA3AF" : "#4B5563"} />
-            <YAxis stroke={darkMode ? "#9CA3AF" : "#4B5563"} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: darkMode ? "#111827" : "#ffffff",
-                border: `1px solid ${darkMode ? "#374151" : "#e5e7eb"}`,
-                borderRadius: 10,
-              }}
-            />
-            <Bar dataKey="energy" fill="#22C55E" radius={[6, 6, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="flex-1 min-h-0 min-w-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={trendData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "#374151" : "#d1d5db"} />
+              <XAxis dataKey="date" stroke={darkMode ? "#9CA3AF" : "#4B5563"} />
+              <YAxis stroke={darkMode ? "#9CA3AF" : "#4B5563"} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: darkMode ? "#111827" : "#ffffff",
+                  border: `1px solid ${darkMode ? "#374151" : "#e5e7eb"}`,
+                  borderRadius: 10,
+                }}
+              />
+              <Bar dataKey="energy" fill="#22C55E" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </Card>
     </div>
   );
