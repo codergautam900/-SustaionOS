@@ -67,7 +67,7 @@ const Analytics = () => {
     } catch (err) {
       console.error("Error fetching analytics data:", err);
       if (err.message.includes("401")) {
-        setError("Unauthorized — please login.");
+        setError("Unauthorized - please login.");
         // optional redirect: window.location.href = "/login";
       } else {
         setError("Failed to load analytics. Try refreshing.");

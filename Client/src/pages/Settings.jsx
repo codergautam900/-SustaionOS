@@ -85,35 +85,39 @@ const MetricTile = ({ label, value, meta }) => (
   </div>
 );
 
-const ToggleRow = ({ icon: Icon, title, description, checked, onChange, tone = "emerald" }) => (
-  <button
-    type="button"
-    onClick={() => onChange(!checked)}
-    className="flex w-full items-center justify-between gap-4 rounded-2xl border border-gray-200/80 bg-white/70 p-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm dark:border-gray-800 dark:bg-gray-900/70"
-  >
-    <div className="flex min-w-0 items-start gap-3">
-      <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-        <Icon size={18} />
-      </div>
-      <div className="min-w-0">
-        <p className="font-semibold text-gray-900 dark:text-white">{title}</p>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p>
-      </div>
-    </div>
+const ToggleRow = ({ icon, title, description, checked, onChange, tone = "emerald" }) => {
+  const Icon = icon;
 
-    <div
-      className={`flex h-7 w-14 items-center rounded-full p-1 transition ${
-        checked ? toggleToneStyles[tone] : "bg-gray-300 dark:bg-gray-700"
-      }`}
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-center justify-between gap-4 rounded-2xl border border-gray-200/80 bg-white/70 p-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm dark:border-gray-800 dark:bg-gray-900/70"
     >
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          {React.createElement(Icon, { size: 18 })}
+        </div>
+        <div className="min-w-0">
+          <p className="font-semibold text-gray-900 dark:text-white">{title}</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p>
+        </div>
+      </div>
+
       <div
-        className={`h-5 w-5 rounded-full bg-white transition-transform ${
-          checked ? "translate-x-7" : "translate-x-0"
+        className={`flex h-7 w-14 items-center rounded-full p-1 transition ${
+          checked ? toggleToneStyles[tone] : "bg-gray-300 dark:bg-gray-700"
         }`}
-      />
-    </div>
-  </button>
-);
+      >
+        <div
+          className={`h-5 w-5 rounded-full bg-white transition-transform ${
+            checked ? "translate-x-7" : "translate-x-0"
+          }`}
+        />
+      </div>
+    </button>
+  );
+};
 
 const RangeControl = ({
   label,
@@ -162,7 +166,7 @@ const RangeControl = ({
 );
 
 const Settings = () => {
-  const { darkMode, setDarkMode } = useContext(ThemeContext);
+  const { setDarkMode } = useContext(ThemeContext);
 
   const [settings, setSettings] = useState(null);
   const [initialSettings, setInitialSettings] = useState(null);
