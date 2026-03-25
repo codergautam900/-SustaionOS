@@ -3,11 +3,12 @@ from urllib.parse import urlparse
 from pathlib import Path
 import json
 import math
+import os
 from datetime import datetime, timezone, timedelta
 import copy
 
-HOST = "127.0.0.1"
-PORT = 8000
+HOST = os.getenv("HOST", "0.0.0.0")
+PORT = int(os.getenv("PORT", "8000"))
 MODEL_NAME = "sustainos-ensemble-v2"
 MODEL_VERSION = "2.0.0"
 MODEL_STATE_PATH = Path(__file__).with_name("model_state.json")

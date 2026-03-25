@@ -1,5 +1,12 @@
 require("dotenv").config({ path: require("path").join(__dirname, "../.env") });
 
+const normalizeServiceUrl = (value, fallback = "") => {
+  const raw = String(value || fallback || "").trim().replace(/\/$/, "");
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `http://${raw}`;
+};
+
 module.exports = {
   PORT: process.env.PORT || 5000,
   MONGO_URI: process.env.MONGO_URI,
@@ -17,5 +24,5 @@ module.exports = {
   GEMINI_URL:
     process.env.GEMINI_URL ||
     "https://generativelanguage.googleapis.com/v1beta/models",
-  ML_SERVICE_URL: process.env.ML_SERVICE_URL || "http://localhost:8000",
+  ML_SERVICE_URL: normalizeServiceUrl(process.env.ML_SERVICE_URL, "http://localhost:8000"),
 };

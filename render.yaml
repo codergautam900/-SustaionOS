@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: sustainos-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.0
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: AI_PROVIDER
+        value: auto
+      - key: OLLAMA_MODEL
+        value: llama3.2:1b
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ML_SERVICE_URL
+        fromService:
+          type: web
+          name: sustainos-ml
+          property: hostport
+
+  - type: web
+    name: sustainos-ml
+    runtime: python
+    plan: free
+    rootDir: ml_service
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    healthCheckPath: /health
