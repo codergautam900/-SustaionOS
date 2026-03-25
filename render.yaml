@@ -17,7 +17,9 @@ services:
       - key: CLIENT_ORIGIN
         sync: false
       - key: AI_PROVIDER
-        value: auto
+        value: ollama
+      - key: OLLAMA_URL
+        sync: false
       - key: OLLAMA_MODEL
         value: llama3.2:1b
       - key: OPENAI_API_KEY
