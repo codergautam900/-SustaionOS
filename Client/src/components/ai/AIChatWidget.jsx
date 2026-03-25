@@ -522,6 +522,7 @@ const AIChatWidget = () => {
   const [status, setStatus] = useState("Ready");
   const [listening, setListening] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
+  const [showTools, setShowTools] = useState(false);
   const [voiceReady, setVoiceReady] = useState(false);
   const [assistantMode, setAssistantMode] = useState(() => loadJSON("sustainos-ai-mode", ASSISTANT_MODES.chat));
   const [telemetryDraft, setTelemetryDraft] = useState(() => loadJSON("sustainos-telemetry-draft", emptyTelemetryDraft));
@@ -557,6 +558,10 @@ const AIChatWidget = () => {
   useEffect(() => {
     saveJSON("sustainos-profile-draft", profileDraft);
   }, [profileDraft]);
+
+  useEffect(() => {
+    if (!open) setShowTools(false);
+  }, [open]);
 
   useEffect(() => {
     setProfileDraft((current) => {
@@ -1099,7 +1104,7 @@ const AIChatWidget = () => {
     <div className="fixed bottom-3 right-3 z-[80] flex flex-col items-end md:bottom-6 md:right-6">
       {open && (
         <div
-          className={`mb-3 flex w-[min(20rem,calc(100vw-1.25rem))] max-h-[calc(100dvh-8rem)] flex-col overflow-hidden rounded-[26px] border shadow-[0_24px_80px_rgba(15,23,42,0.28)] backdrop-blur-2xl md:w-[min(336px,calc(100vw-1rem))] ${
+          className={`mb-3 flex w-[min(21.5rem,calc(100vw-1rem))] max-h-[calc(100dvh-8rem)] flex-col overflow-hidden rounded-[26px] border shadow-[0_24px_80px_rgba(15,23,42,0.28)] backdrop-blur-2xl md:w-[min(336px,calc(100vw-1rem))] ${
             darkMode
               ? "border-white/10 bg-slate-950/90 text-white"
               : "border-white/40 bg-white/92 text-slate-900"
@@ -1130,19 +1135,28 @@ const AIChatWidget = () => {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setOpen(false)}
-                  className="rounded-full border border-white/10 p-2 text-slate-500 transition hover:bg-white/10 hover:text-red-500"
-                  aria-label="Close AI chat"
-                >
-                  <X size={16} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowTools((prev) => !prev)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-slate-500 transition hover:bg-white/10 hover:text-slate-900 md:hidden dark:text-slate-300 dark:hover:text-white"
+                  >
+                    {showTools ? "Hide tools" : "Tools"}
+                  </button>
+                  <button
+                    onClick={() => setOpen(false)}
+                    className="rounded-full border border-white/10 p-2 text-slate-500 transition hover:bg-white/10 hover:text-red-500"
+                    aria-label="Close AI chat"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
               </div>
 
-              <div className="mt-3 grid grid-cols-1 gap-1.5 rounded-2xl border border-white/10 bg-black/5 p-1 sm:grid-cols-3 dark:bg-white/5">
+              <div className="mt-3 grid grid-cols-3 gap-1.5 rounded-2xl border border-white/10 bg-black/5 p-1 dark:bg-white/5">
                 <button
                   onClick={() => setAssistantMode(ASSISTANT_MODES.chat)}
-                  className={`inline-flex items-center justify-center gap-2 rounded-xl px-2.5 py-2 text-xs font-semibold transition ${
+                  className={`inline-flex items-center justify-center gap-2 rounded-xl px-2.5 py-2 text-[10px] font-semibold whitespace-nowrap transition sm:text-xs ${
                     assistantMode === ASSISTANT_MODES.chat
                       ? "bg-cyan-500/20 text-cyan-700 dark:text-cyan-200"
                       : "text-slate-500 dark:text-slate-300"
@@ -1153,7 +1167,7 @@ const AIChatWidget = () => {
                 </button>
                 <button
                   onClick={() => setAssistantMode(ASSISTANT_MODES.telemetry)}
-                  className={`inline-flex items-center justify-center gap-2 rounded-xl px-2.5 py-2 text-xs font-semibold transition ${
+                  className={`inline-flex items-center justify-center gap-2 rounded-xl px-2.5 py-2 text-[10px] font-semibold whitespace-nowrap transition sm:text-xs ${
                     assistantMode === ASSISTANT_MODES.telemetry
                       ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-200"
                       : "text-slate-500 dark:text-slate-300"
@@ -1164,7 +1178,7 @@ const AIChatWidget = () => {
                 </button>
                 <button
                   onClick={() => setAssistantMode(ASSISTANT_MODES.profile)}
-                  className={`inline-flex items-center justify-center gap-2 rounded-xl px-2.5 py-2 text-xs font-semibold transition ${
+                  className={`inline-flex items-center justify-center gap-2 rounded-xl px-2.5 py-2 text-[10px] font-semibold whitespace-nowrap transition sm:text-xs ${
                     assistantMode === ASSISTANT_MODES.profile
                       ? "bg-violet-500/20 text-violet-700 dark:text-violet-200"
                       : "text-slate-500 dark:text-slate-300"
@@ -1175,97 +1189,114 @@ const AIChatWidget = () => {
                 </button>
               </div>
 
-              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <button
-                  onClick={fetchForecast}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-800 dark:bg-white dark:text-slate-950"
-                >
-                  <ArrowUpRight size={12} />
-                  Forecast
-                </button>
-                <button
-                  onClick={clearChat}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-slate-500 transition hover:bg-white/10 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
-                >
-                  <Trash2 size={12} />
-                  Clear
-                </button>
-                <button
-                  onClick={listening ? stopListening : startListening}
-                  className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                    listening
-                      ? "bg-rose-500/20 text-rose-700 dark:text-rose-200"
-                      : "border border-white/10 bg-white/5 text-slate-500 dark:text-slate-300"
-                  }`}
-                >
-                  <Mic size={12} />
-                  {listening
-                    ? "Listening..."
-                    : voiceReady
-                      ? assistantMode === ASSISTANT_MODES.chat
-                        ? "Voice input"
-                        : "Hindi voice"
-                      : "Voice unavailable"}
-                </button>
-                <button
-                  onClick={() => setAutoSpeak((prev) => !prev)}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-500 transition hover:bg-white/10 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
-                >
-                  {autoSpeak ? <Volume2 size={12} /> : <VolumeX size={12} />}
-                  {autoSpeak ? "Speak on" : "Speak off"}
-                </button>
-                <div className="inline-flex items-center justify-center gap-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-600 dark:text-cyan-300 sm:col-span-2">
+              <div className={`${showTools ? "block" : "hidden"} md:block`}>
+                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <button
+                    onClick={fetchForecast}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-800 dark:bg-white dark:text-slate-950"
+                  >
+                    <ArrowUpRight size={12} />
+                    Forecast
+                  </button>
+                  <button
+                    onClick={clearChat}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-slate-500 transition hover:bg-white/10 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                  >
+                    <Trash2 size={12} />
+                    Clear
+                  </button>
+                  <button
+                    onClick={listening ? stopListening : startListening}
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                      listening
+                        ? "bg-rose-500/20 text-rose-700 dark:text-rose-200"
+                        : "border border-white/10 bg-white/5 text-slate-500 dark:text-slate-300"
+                    }`}
+                  >
+                    <Mic size={12} />
+                    {listening
+                      ? "Listening..."
+                      : voiceReady
+                        ? assistantMode === ASSISTANT_MODES.chat
+                          ? "Voice input"
+                          : "Hindi voice"
+                        : "Voice unavailable"}
+                  </button>
+                  <button
+                    onClick={() => setAutoSpeak((prev) => !prev)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-500 transition hover:bg-white/10 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                  >
+                    {autoSpeak ? <Volume2 size={12} /> : <VolumeX size={12} />}
+                    {autoSpeak ? "Speak on" : "Speak off"}
+                  </button>
+                </div>
+
+                <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-[11px] font-semibold text-cyan-600 dark:text-cyan-300">
                   <MessageCircle size={12} />
                   Memory on
                 </div>
-              </div>
 
-              {assistantMode !== ASSISTANT_MODES.chat && (
-                <div className="mt-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-2.5 text-xs text-cyan-700 dark:text-cyan-200">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-semibold">
-                      {assistantMode === ASSISTANT_MODES.telemetry ? "Voice Telemetry Draft" : "Voice Profile Draft"}
-                    </span>
-                    <button onClick={resetAssistantDraft} className="font-semibold underline decoration-dotted">
-                      Clear draft
-                    </button>
+                {assistantMode !== ASSISTANT_MODES.chat && (
+                  <div className="mt-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-2.5 text-xs text-cyan-700 dark:text-cyan-200">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-semibold">
+                        {assistantMode === ASSISTANT_MODES.telemetry ? "Voice Telemetry Draft" : "Voice Profile Draft"}
+                      </span>
+                      <button onClick={resetAssistantDraft} className="font-semibold underline decoration-dotted">
+                        Clear draft
+                      </button>
+                    </div>
+
+                    {assistantMode === ASSISTANT_MODES.telemetry ? (
+                      <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-cyan-950 dark:text-cyan-50">
+                        <span className="rounded-full bg-white/70 px-2.5 py-1 dark:bg-black/20">
+                          <span className="opacity-70">Building</span>{" "}
+                          <span className="font-semibold">{telemetryDraft.building || "pending"}</span>
+                        </span>
+                        <span className="rounded-full bg-white/70 px-2.5 py-1 dark:bg-black/20">
+                          <span className="opacity-70">Water</span>{" "}
+                          <span className="font-semibold">{telemetryDraft.water || "pending"}</span>
+                        </span>
+                        <span className="rounded-full bg-white/70 px-2.5 py-1 dark:bg-black/20">
+                          <span className="opacity-70">Energy</span>{" "}
+                          <span className="font-semibold">{telemetryDraft.energy || "pending"}</span>
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-cyan-950 dark:text-cyan-50">
+                        <span className="rounded-full bg-white/70 px-2.5 py-1 dark:bg-black/20">
+                          <span className="opacity-70">Name</span>{" "}
+                          <span className="font-semibold">{profileDraft.name || "pending"}</span>
+                        </span>
+                        <span className="rounded-full bg-white/70 px-2.5 py-1 dark:bg-black/20">
+                          <span className="opacity-70">Building</span>{" "}
+                          <span className="font-semibold">{profileDraft.building || "pending"}</span>
+                        </span>
+                      </div>
+                    )}
+
+                    <p className="mt-2 text-[11px] leading-5 opacity-80">
+                      {assistantMode === ASSISTANT_MODES.telemetry
+                        ? "Hindi ya Hinglish me bolo: building, water, energy. Sab ready ho to 'submit' bolo."
+                        : "Hindi ya Hinglish me bolo: apna naam aur building. Ready ho to 'submit' bolo."}
+                    </p>
                   </div>
+                )}
 
-                  {assistantMode === ASSISTANT_MODES.telemetry ? (
-                    <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-cyan-950 dark:text-cyan-50">
-                      <span className="rounded-full bg-white/70 px-2.5 py-1 dark:bg-black/20">
-                        <span className="opacity-70">Building</span>{" "}
-                        <span className="font-semibold">{telemetryDraft.building || "pending"}</span>
-                      </span>
-                      <span className="rounded-full bg-white/70 px-2.5 py-1 dark:bg-black/20">
-                        <span className="opacity-70">Water</span>{" "}
-                        <span className="font-semibold">{telemetryDraft.water || "pending"}</span>
-                      </span>
-                      <span className="rounded-full bg-white/70 px-2.5 py-1 dark:bg-black/20">
-                        <span className="opacity-70">Energy</span>{" "}
-                        <span className="font-semibold">{telemetryDraft.energy || "pending"}</span>
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-cyan-950 dark:text-cyan-50">
-                      <span className="rounded-full bg-white/70 px-2.5 py-1 dark:bg-black/20">
-                        <span className="opacity-70">Name</span>{" "}
-                        <span className="font-semibold">{profileDraft.name || "pending"}</span>
-                      </span>
-                      <span className="rounded-full bg-white/70 px-2.5 py-1 dark:bg-black/20">
-                        <span className="opacity-70">Building</span>{" "}
-                        <span className="font-semibold">{profileDraft.building || "pending"}</span>
-                      </span>
-                    </div>
-                  )}
-
-                  <p className="mt-2 text-[11px] leading-5 opacity-80">
-                    {assistantMode === ASSISTANT_MODES.telemetry
-                      ? "Hindi ya Hinglish me bolo: building, water, energy. Sab ready ho to 'submit' bolo."
-                      : "Hindi ya Hinglish me bolo: apna naam aur building. Ready ho to 'submit' bolo."}
-                  </p>
-                </div>
-              )}
+                {messages.length === 1 && !loading && quickTips.length > 0 ? (
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {quickTips.map((q, i) => (
+                      <button
+                        key={i}
+                        onClick={() => sendMessage(q)}
+                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-medium text-slate-600 transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                      >
+                        <span className="block truncate">{q}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -1417,20 +1448,6 @@ const AIChatWidget = () => {
 
             <div ref={messagesEndRef} />
           </div>
-
-          {messages.length === 1 && !loading && quickTips.length > 0 ? (
-            <div className="shrink-0 grid grid-cols-1 gap-2 px-3.5 pb-3 sm:grid-cols-2">
-              {quickTips.map((q, i) => (
-                <button
-                  key={i}
-                  onClick={() => sendMessage(q)}
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-medium text-slate-600 transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
-                >
-                  <span className="block truncate">{q}</span>
-                </button>
-              ))}
-            </div>
-          ) : null}
 
           <div className="shrink-0 border-t border-white/10 p-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
