@@ -36,6 +36,24 @@ const scheduleTone = (ctx, { startAt, frequency, duration, gain, type = "sine" }
   oscillator.stop(startAt + duration + 0.04);
 };
 
+const playLayeredTone = (ctx, { startAt, frequency, duration, gain, type = "triangle" }) => {
+  scheduleTone(ctx, { startAt, frequency, duration, gain, type });
+  scheduleTone(ctx, {
+    startAt,
+    frequency: frequency * 2,
+    duration: Math.max(0.08, duration - 0.03),
+    gain: gain * 0.45,
+    type: "sine",
+  });
+  scheduleTone(ctx, {
+    startAt,
+    frequency: Math.max(180, frequency / 2),
+    duration: duration + 0.03,
+    gain: gain * 0.25,
+    type: "triangle",
+  });
+};
+
 export const isAlertSoundEnabled = () => getSavedSoundPreference() !== "off";
 
 export const setAlertSoundEnabled = (enabled) => {
@@ -91,12 +109,12 @@ export const playAlertSound = async ({ priority = "LOW", type = "SYSTEM" } = {})
   const baseTime = ctx.currentTime + 0.02;
 
   if (urgent) {
-    scheduleTone(ctx, { startAt: baseTime, frequency: 740, duration: 0.12, gain: 0.07, type: "triangle" });
-    scheduleTone(ctx, { startAt: baseTime + 0.14, frequency: 988, duration: 0.14, gain: 0.08, type: "triangle" });
-    scheduleTone(ctx, { startAt: baseTime + 0.32, frequency: 1318, duration: 0.2, gain: 0.06, type: "sine" });
+    playLayeredTone(ctx, { startAt: baseTime, frequency: 784, duration: 0.14, gain: 0.14, type: "triangle" });
+    playLayeredTone(ctx, { startAt: baseTime + 0.16, frequency: 1046, duration: 0.16, gain: 0.16, type: "triangle" });
+    playLayeredTone(ctx, { startAt: baseTime + 0.38, frequency: 1396, duration: 0.24, gain: 0.13, type: "sine" });
   } else {
-    scheduleTone(ctx, { startAt: baseTime, frequency: 660, duration: 0.1, gain: 0.05, type: "sine" });
-    scheduleTone(ctx, { startAt: baseTime + 0.16, frequency: 988, duration: 0.14, gain: 0.045, type: "sine" });
+    playLayeredTone(ctx, { startAt: baseTime, frequency: 698, duration: 0.12, gain: 0.1, type: "sine" });
+    playLayeredTone(ctx, { startAt: baseTime + 0.15, frequency: 988, duration: 0.18, gain: 0.095, type: "triangle" });
   }
 
   return true;
