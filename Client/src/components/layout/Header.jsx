@@ -87,7 +87,12 @@ const Header = ({ setIsOpen }) => {
       if (String(notification.userId || "") !== String(user?._id || "")) return;
       setNotifications((prev) => [notification, ...prev].slice(0, 6));
       setUnreadCount((count) => count + 1);
-      playAlertSound({ priority: notification.priority, type: notification.type });
+      playAlertSound({
+        priority: notification.priority,
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+      });
     };
 
     socket.on("newNotification", onNewNotification);

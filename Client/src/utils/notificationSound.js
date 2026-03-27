@@ -18,12 +18,15 @@ const getSavedSoundPreference = () => {
   return window.localStorage.getItem(STORAGE_KEY) || "on";
 };
 
-const scheduleTone = (ctx, { startAt, frequency, duration, gain, type = "sine" }) => {
+const scheduleTone = (ctx, { startAt, frequency, duration, gain, type = "sine", sweepTo = null }) => {
   const oscillator = ctx.createOscillator();
   const gainNode = ctx.createGain();
 
   oscillator.type = type;
   oscillator.frequency.setValueAtTime(frequency, startAt);
+  if (sweepTo && sweepTo !== frequency) {
+    oscillator.frequency.exponentialRampToValueAtTime(sweepTo, startAt + duration);
+  }
 
   gainNode.gain.setValueAtTime(0.0001, startAt);
   gainNode.gain.exponentialRampToValueAtTime(gain, startAt + 0.02);
@@ -52,6 +55,53 @@ const playLayeredTone = (ctx, { startAt, frequency, duration, gain, type = "tria
     gain: gain * 0.25,
     type: "triangle",
   });
+};
+
+const playHornBlast = (ctx, { startAt, rootFrequency, duration = 0.22, gain = 0.18 }) => {
+  scheduleTone(ctx, {
+    startAt,
+    frequency: rootFrequency,
+    sweepTo: Math.max(220, rootFrequency - 36),
+    duration,
+    gain,
+    type: "sawtooth",
+  });
+  scheduleTone(ctx, {
+    startAt,
+    frequency: rootFrequency * 1.24,
+    sweepTo: Math.max(260, rootFrequency * 1.18),
+    duration: duration - 0.02,
+    gain: gain * 0.72,
+    type: "square",
+  });
+  scheduleTone(ctx, {
+    startAt,
+    frequency: Math.max(160, rootFrequency / 2),
+    sweepTo: Math.max(140, rootFrequency / 2 - 14),
+    duration: duration + 0.05,
+    gain: gain * 0.4,
+    type: "triangle",
+  });
+};
+
+const resolveSoundProfile = ({ priority = "LOW", type = "SYSTEM", title = "", message = "" } = {}) => {
+  const severity = String(priority || "").toUpperCase();
+  const category = String(type || "").toUpperCase();
+  const text = `${title} ${message}`.toLowerCase();
+
+  const resourceSpike =
+    /(water|paani|leak|pipeline|tank|flow|energy|electricity|power|load|hvac|voltage|current)/.test(text) &&
+    /(spike|high|critical|urgent|detected|alert|warning)/.test(text);
+
+  if (resourceSpike && (severity === "HIGH" || category === "ALERT")) {
+    return "resource-horn";
+  }
+
+  if (severity === "HIGH" || category === "ALERT") {
+    return "urgent-chime";
+  }
+
+  return "default-chime";
 };
 
 export const isAlertSoundEnabled = () => getSavedSoundPreference() !== "off";
@@ -89,7 +139,7 @@ export const primeAlertAudio = () => {
   window.addEventListener("touchstart", unlockAudio, { passive: true });
 };
 
-export const playAlertSound = async ({ priority = "LOW", type = "SYSTEM" } = {}) => {
+export const playAlertSound = async ({ priority = "LOW", type = "SYSTEM", title = "", message = "" } = {}) => {
   if (!isAlertSoundEnabled()) return false;
 
   const ctx = getAudioContext();
@@ -105,10 +155,14 @@ export const playAlertSound = async ({ priority = "LOW", type = "SYSTEM" } = {})
 
   if (ctx.state !== "running") return false;
 
-  const urgent = String(priority || "").toUpperCase() === "HIGH" || String(type || "").toUpperCase() === "ALERT";
+  const profile = resolveSoundProfile({ priority, type, title, message });
   const baseTime = ctx.currentTime + 0.02;
 
-  if (urgent) {
+  if (profile === "resource-horn") {
+    playHornBlast(ctx, { startAt: baseTime, rootFrequency: 392, duration: 0.24, gain: 0.22 });
+    playHornBlast(ctx, { startAt: baseTime + 0.22, rootFrequency: 440, duration: 0.24, gain: 0.24 });
+    playHornBlast(ctx, { startAt: baseTime + 0.48, rootFrequency: 392, duration: 0.28, gain: 0.2 });
+  } else if (profile === "urgent-chime") {
     playLayeredTone(ctx, { startAt: baseTime, frequency: 784, duration: 0.14, gain: 0.14, type: "triangle" });
     playLayeredTone(ctx, { startAt: baseTime + 0.16, frequency: 1046, duration: 0.16, gain: 0.16, type: "triangle" });
     playLayeredTone(ctx, { startAt: baseTime + 0.38, frequency: 1396, duration: 0.24, gain: 0.13, type: "sine" });
