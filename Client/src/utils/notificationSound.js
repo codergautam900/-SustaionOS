@@ -111,26 +111,62 @@ const playSirenSweep = (ctx, { startAt, fromFrequency, toFrequency, duration = 0
   });
 };
 
-const playEmergencySiren = (ctx, { startAt, cycles = 5, gain = 0.2 }) => {
-  const cycleDuration = 0.34;
+const playAmbulancePulse = (ctx, { startAt, frequency, duration = 0.24, gain = 0.22 }) => {
+  scheduleTone(ctx, {
+    startAt,
+    frequency,
+    sweepTo: frequency * 1.04,
+    duration,
+    gain,
+    type: "square",
+  });
+  scheduleTone(ctx, {
+    startAt,
+    frequency: frequency * 1.5,
+    sweepTo: frequency * 1.56,
+    duration: duration - 0.01,
+    gain: gain * 0.72,
+    type: "sawtooth",
+  });
+  scheduleTone(ctx, {
+    startAt,
+    frequency: Math.max(180, frequency / 2),
+    sweepTo: Math.max(180, frequency / 2 * 1.03),
+    duration: duration + 0.03,
+    gain: gain * 0.4,
+    type: "triangle",
+  });
+};
+
+const playEmergencySiren = (ctx, { startAt, cycles = 8, gain = 0.28 }) => {
+  const pulseDuration = 0.24;
+  const gap = 0.04;
+  const step = pulseDuration + gap;
 
   for (let index = 0; index < cycles; index += 1) {
-    const cycleStart = startAt + index * cycleDuration;
-    const upward = index % 2 === 0;
-    playSirenSweep(ctx, {
-      startAt: cycleStart,
-      fromFrequency: upward ? 560 : 960,
-      toFrequency: upward ? 960 : 560,
-      duration: cycleDuration,
-      gain: gain * (index === cycles - 1 ? 0.92 : 1),
+    const pulseStart = startAt + index * step;
+    const isHigh = index % 2 === 1;
+    playAmbulancePulse(ctx, {
+      startAt: pulseStart,
+      frequency: isHigh ? 960 : 720,
+      duration: pulseDuration,
+      gain: gain * (index >= cycles - 2 ? 0.94 : 1),
     });
   }
 
+  playSirenSweep(ctx, {
+    startAt: startAt + cycles * step - 0.02,
+    fromFrequency: 760,
+    toFrequency: 1120,
+    duration: 0.42,
+    gain: gain * 0.88,
+  });
+
   playHornBlast(ctx, {
-    startAt: startAt + cycles * cycleDuration - 0.06,
-    rootFrequency: 440,
-    duration: 0.28,
-    gain: gain * 0.92,
+    startAt: startAt + cycles * step + 0.28,
+    rootFrequency: 460,
+    duration: 0.32,
+    gain: gain * 0.78,
   });
 };
 
@@ -209,7 +245,7 @@ export const playAlertSound = async ({ priority = "LOW", type = "SYSTEM", title 
   const baseTime = ctx.currentTime + 0.02;
 
   if (profile === "resource-siren") {
-    playEmergencySiren(ctx, { startAt: baseTime, cycles: 5, gain: 0.22 });
+    playEmergencySiren(ctx, { startAt: baseTime, cycles: 8, gain: 0.28 });
   } else if (profile === "urgent-chime") {
     playLayeredTone(ctx, { startAt: baseTime, frequency: 784, duration: 0.14, gain: 0.14, type: "triangle" });
     playLayeredTone(ctx, { startAt: baseTime + 0.16, frequency: 1046, duration: 0.16, gain: 0.16, type: "triangle" });
