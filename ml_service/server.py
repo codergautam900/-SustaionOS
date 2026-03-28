@@ -5,12 +5,11 @@ import json
 import math
 import os
 from datetime import datetime, timezone, timedelta
-import copy
 
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8000"))
-MODEL_NAME = "sustainos-ensemble-v2"
-MODEL_VERSION = "2.0.0"
+MODEL_NAME = "sustainos-ensemble-v3"
+MODEL_VERSION = "3.0.0"
 MODEL_STATE_PATH = Path(__file__).with_name("model_state.json")
 from trainable_model import SustainOSLinearModel, parse_dt as model_parse_dt
 from profile_voice_model import PROFILE_VOICE_MODEL
@@ -248,31 +247,56 @@ def predict_payload(records):
 
     one_hour = MODEL.forecast(ordered, steps=1) or {}
     one_day = MODEL.forecast(ordered, steps=24) or {}
+    status = MODEL.status()
     latest_energy = safe_num(ordered[-1].get("energy"))
     latest_water = safe_num(ordered[-1].get("water"))
     avg_energy = mean([safe_num(r.get("energy")) for r in ordered])
     avg_water = mean([safe_num(r.get("water")) for r in ordered])
-    metrics = MODEL.status().get("metrics", {})
+    metrics = status.get("validationMetrics", {}) or status.get("metrics", {})
     energy_std = round(safe_num(metrics.get("energy", {}).get("rmse")) or stddev([safe_num(r.get("energy")) for r in ordered]) or 1.0)
     water_std = round(safe_num(metrics.get("water", {}).get("rmse")) or stddev([safe_num(r.get("water")) for r in ordered]) or 1.0)
     ci95_energy = round(1.96 * max(1.0, energy_std))
     ci95_water = round(1.96 * max(1.0, water_std))
+    hour_prediction = one_hour.get("prediction", {}) or {}
+    day_prediction = one_day.get("prediction", {}) or {}
+    training = {
+        "samples": status.get("trainedSamples", 0),
+        "featureCount": status.get("featureCount", 0),
+        "lastTrainedAt": status.get("lastTrainedAt"),
+        "metrics": status.get("metrics", {}),
+        "validationMetrics": status.get("validationMetrics", {}),
+        "topFeatures": status.get("topFeatures", {}),
+        "history": status.get("trainingHistory", []),
+    }
 
     return {
-        "model": MODEL.status(),
+        "model": status,
         "predictedWaterAvg": round(avg_water),
         "predictedEnergyAvg": round(avg_energy),
-        "predictedWaterNextHour": one_hour.get("prediction", {}).get("predictedWater", round(avg_water)),
-        "predictedEnergyNextHour": one_hour.get("prediction", {}).get("predictedEnergy", round(avg_energy)),
-        "predictedWaterNextDay": one_day.get("prediction", {}).get("predictedWater", round(avg_water)),
-        "predictedEnergyNextDay": one_day.get("prediction", {}).get("predictedEnergy", round(avg_energy)),
+        "predictedWaterNextHour": hour_prediction.get("predictedWater", round(avg_water)),
+        "predictedEnergyNextHour": hour_prediction.get("predictedEnergy", round(avg_energy)),
+        "predictedWaterNextDay": day_prediction.get("predictedWater", round(avg_water)),
+        "predictedEnergyNextDay": day_prediction.get("predictedEnergy", round(avg_energy)),
         "predictedEnergyStdDev": energy_std,
         "predictedWaterStdDev": water_std,
-        "predictedEnergyCI95": {"low": max(0, round(one_hour.get("prediction", {}).get("predictedEnergy", avg_energy) - ci95_energy)), "high": round(one_hour.get("prediction", {}).get("predictedEnergy", avg_energy) + ci95_energy)},
-        "predictedWaterCI95": {"low": max(0, round(one_hour.get("prediction", {}).get("predictedWater", avg_water) - ci95_water)), "high": round(one_hour.get("prediction", {}).get("predictedWater", avg_water) + ci95_water)},
-        "confidence": one_hour.get("confidence", MODEL.status().get("fitScore", 60)),
+        "predictedEnergyCI95": {"low": max(0, round(hour_prediction.get("predictedEnergy", avg_energy) - ci95_energy)), "high": round(hour_prediction.get("predictedEnergy", avg_energy) + ci95_energy)},
+        "predictedWaterCI95": {"low": max(0, round(hour_prediction.get("predictedWater", avg_water) - ci95_water)), "high": round(hour_prediction.get("predictedWater", avg_water) + ci95_water)},
+        "confidence": one_hour.get("confidence", status.get("fitScore", 60)),
         "signalBreakdown": build_signal_breakdown(ordered),
         "latest": {"energy": latest_energy, "water": latest_water},
+        "forecastPath": one_day.get("path") or [],
+        "drivers": one_day.get("drivers") or [],
+        "componentWeights": one_day.get("componentWeights") or {},
+        "predictionWindows": {
+            "nextHour": hour_prediction,
+            "nextDay": day_prediction,
+        },
+        "training": training,
+        "modelOps": {
+            "ensembleMode": status.get("ensembleMode"),
+            "avgGapHours": ((status.get("temporalProfile") or {}).get("avgGapHours") or 1.0),
+            "topFeatures": status.get("topFeatures", {}),
+        },
     }
 
 
@@ -341,7 +365,19 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/train":
             result = MODEL.train(payload.get("records") or [])
-            return self._json(200, {"status": "trained", "model": result})
+            return self._json(200, {"status": "trained", "model": result, "trainingHistory": result.get("trainingHistory", [])})
+
+        if path == "/recommend":
+            result = insights_payload(payload.get("records") or [])
+            return self._json(
+                200,
+                {
+                    "nextBestAction": result.get("nextBestAction"),
+                    "rankedActions": result.get("rankedActions", []),
+                    "confidence": result.get("confidence"),
+                    "model": result.get("model"),
+                },
+            )
 
         if path == "/profile-parse":
             result = parse_profile_payload(payload.get("text") or "", payload.get("draft") or {})

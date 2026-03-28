@@ -1,6 +1,7 @@
 const Data = require("../models/Data");
 const scoreService = require("../services/sustainabilityScore.engine");
 const executiveInsights = require("../services/executiveInsights.service");
+const mlBridge = require("../services/mlBridge.service");
 
 // helper to compute startDate from period
 const computeStartDate = (period) => {
@@ -12,6 +13,18 @@ const computeStartDate = (period) => {
   if (!isNaN(parseInt(period))) { const d = new Date(); d.setMonth(now.getMonth() - parseInt(period)); return d; }
   return null;
 };
+
+const simplifyTelemetry = (records = []) =>
+  records.map((record) => ({
+    timestamp: record.timestamp || record.createdAt || null,
+    building: record.building || "Unknown",
+    location: record.location || "",
+    sensorId: record.sensorId || "",
+    batteryLevel: Number(record.batteryLevel) || 0,
+    signalQuality: Number(record.signalQuality) || 0,
+    water: Number(record.water) || 0,
+    energy: Number(record.energy) || 0,
+  }));
 
 // Get analytics summary (user-specific)
 exports.getAnalytics = async (req, res, next) => {
@@ -116,6 +129,68 @@ exports.getInsights = async (req, res, next) => {
     const { period } = req.query;
     const insights = await executiveInsights.getExecutiveInsights(userId, period || "week");
     res.json(insights);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getModelStatus = async (req, res, next) => {
+  try {
+    const userId = req.user && req.user._id;
+    if (!userId) return res.status(401).json({ msg: "Unauthorized" });
+
+    const records = await Data.find({ userId }).sort({ timestamp: -1, createdAt: -1 }).limit(240);
+    const latest = records[0] || null;
+    const earliest = records[records.length - 1] || null;
+    const model = await mlBridge.getModelStatus();
+
+    res.json({
+      model,
+      telemetryWindow: {
+        sampleCount: records.length,
+        latestTimestamp: latest?.timestamp || latest?.createdAt || null,
+        earliestTimestamp: earliest?.timestamp || earliest?.createdAt || null,
+      },
+      readyToTrain: records.length >= 12,
+      trainingRecommended:
+        records.length >= 12 &&
+        (!model?.active || records.length > Number(model?.trainedSamples || 0) + 12),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.trainModel = async (req, res, next) => {
+  try {
+    const userId = req.user && req.user._id;
+    if (!userId) return res.status(401).json({ msg: "Unauthorized" });
+
+    const limit = Math.min(720, Math.max(24, Number(req.body?.limit) || 240));
+    const records = await Data.find({ userId }).sort({ timestamp: -1, createdAt: -1 }).limit(limit);
+    const ordered = [...records].reverse();
+
+    if (ordered.length < 12) {
+      return res.status(400).json({
+        success: false,
+        msg: "Need at least 12 telemetry readings to train the advanced model.",
+      });
+    }
+
+    const result = await mlBridge.trainModel(simplifyTelemetry(ordered));
+    if (!result) {
+      return res.status(503).json({
+        success: false,
+        msg: "Python ML service unavailable for training.",
+      });
+    }
+
+    res.json({
+      success: true,
+      trainedOn: ordered.length,
+      model: result.model || result,
+      trainingHistory: result.trainingHistory || result.model?.trainingHistory || [],
+    });
   } catch (err) {
     next(err);
   }

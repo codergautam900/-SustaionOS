@@ -38,6 +38,10 @@ const trainModel = async (records = []) => {
   return postJson("/train", { records });
 };
 
+const getRecommendations = async (records = []) => {
+  return postJson("/recommend", { records });
+};
+
 const getModelStatus = async () => {
   if (typeof fetch !== "function" || !baseUrl) return null;
 
@@ -59,6 +63,7 @@ module.exports = {
   getHealth,
   getInsights,
   trainModel,
+  getRecommendations,
   getModelStatus,
   parseProfileVoice,
 };

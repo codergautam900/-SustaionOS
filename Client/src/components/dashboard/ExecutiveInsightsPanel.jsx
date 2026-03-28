@@ -24,45 +24,81 @@ const ExecutiveInsightsPanel = ({ period = "week", compact = false }) => {
   const { darkMode } = useContext(ThemeContext);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [retraining, setRetraining] = useState(false);
+  const [trainMessage, setTrainMessage] = useState("");
+
+  const loadInsights = async (isMounted = () => true) => {
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+
+      if (!token) {
+        if (isMounted()) setData(null);
+        return;
+      }
+
+      const res = await fetch(apiUrl(`/api/analytics/insights?period=${period}`), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to load insights");
+
+      const json = await res.json();
+      if (isMounted()) setData(json);
+    } catch (err) {
+      console.error("Insights fetch error:", err);
+      if (isMounted()) setData(null);
+    } finally {
+      if (isMounted()) setLoading(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
-
-    const loadInsights = async () => {
-      try {
-        setLoading(true);
-        const token = getAuthToken();
-
-        if (!token) {
-          if (mounted) setData(null);
-          return;
-        }
-
-        const res = await fetch(apiUrl(`/api/analytics/insights?period=${period}`), {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!res.ok) throw new Error("Failed to load insights");
-
-        const json = await res.json();
-        if (mounted) setData(json);
-      } catch (err) {
-        console.error("Insights fetch error:", err);
-        if (mounted) setData(null);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    loadInsights();
+    loadInsights(() => mounted);
 
     return () => {
       mounted = false;
     };
   }, [period]);
+
+  const retrainModel = async () => {
+    try {
+      setRetraining(true);
+      setTrainMessage("");
+      const token = getAuthToken();
+      if (!token) {
+        setTrainMessage("Login required for model training.");
+        return;
+      }
+
+      const res = await fetch(apiUrl("/api/analytics/model/train"), {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ limit: 240 }),
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setTrainMessage(json.msg || "Model retraining failed.");
+        return;
+      }
+
+      setTrainMessage(`Model retrained on ${json.trainedOn || 0} readings.`);
+      await loadInsights(() => true);
+    } catch (err) {
+      console.error("Model retrain failed:", err);
+      setTrainMessage("Model retraining failed.");
+    } finally {
+      setRetraining(false);
+    }
+  };
 
   const metricCardClass = `rounded-xl border p-4 transition-all duration-300 ${
     darkMode ? "border-gray-800 bg-gray-900/60" : "border-gray-200 bg-white"
@@ -81,6 +117,14 @@ const ExecutiveInsightsPanel = ({ period = "week", compact = false }) => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 justify-end">
+          <button
+            onClick={retrainModel}
+            disabled={retraining || loading}
+            className="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1.5 text-sm font-medium text-cyan-700 transition hover:bg-cyan-500/15 disabled:opacity-60 dark:text-cyan-300"
+          >
+            <Cpu size={16} />
+            {retraining ? "Retraining..." : "Retrain ML"}
+          </button>
           <div
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium ${
               data?.mlStatus?.active
@@ -101,6 +145,11 @@ const ExecutiveInsightsPanel = ({ period = "week", compact = false }) => {
           </div>
         </div>
       </div>
+      {trainMessage ? (
+        <div className="mb-4 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-700 dark:text-cyan-200">
+          {trainMessage}
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -337,6 +386,13 @@ const ExecutiveInsightsPanel = ({ period = "week", compact = false }) => {
                     <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                       {action.reason}
                     </p>
+                    {(action.ownerHint || action.window) && (
+                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        {action.ownerHint ? `Owner: ${action.ownerHint}` : ""}
+                        {action.ownerHint && action.window ? " | " : ""}
+                        {action.window ? `Window: ${action.window}` : ""}
+                      </p>
+                    )}
                   </div>
                   <span className="inline-flex items-center gap-1 rounded-full bg-primary/20 px-2 py-1 text-xs font-medium text-black">
                     <ArrowUpRight size={12} />
@@ -346,6 +402,50 @@ const ExecutiveInsightsPanel = ({ period = "week", compact = false }) => {
               </div>
             ))}
           </div>
+
+          {(data.training?.featureImportance?.energy?.length || data.training?.featureImportance?.water?.length) ? (
+            <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
+                Model Drivers
+              </h4>
+              <div className="space-y-3 text-sm">
+                {data.training?.featureImportance?.energy?.length ? (
+                  <div>
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Energy
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {data.training.featureImportance.energy.slice(0, 4).map((item) => (
+                        <span
+                          key={`energy-${item.feature}`}
+                          className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-600 dark:border-gray-800 dark:text-gray-300"
+                        >
+                          {item.feature} {item.direction === "down" ? "down" : "up"}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {data.training?.featureImportance?.water?.length ? (
+                  <div>
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Water
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {data.training.featureImportance.water.slice(0, 4).map((item) => (
+                        <span
+                          key={`water-${item.feature}`}
+                          className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-600 dark:border-gray-800 dark:text-gray-300"
+                        >
+                          {item.feature} {item.direction === "down" ? "down" : "up"}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
 
           {data.buildingBenchmarks?.length ? (
             <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-4">

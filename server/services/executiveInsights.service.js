@@ -162,6 +162,32 @@ const normalizeRootCause = (remote) => {
   return "Mixed operational drift";
 };
 
+const normalizeRemoteActions = (remoteActions = [], fallbackActions = []) => {
+  if (Array.isArray(remoteActions) && remoteActions.every((item) => typeof item === "string") && remoteActions.length > 0) {
+    return remoteActions.map((message, index) => ({
+      title: `ML Action ${index + 1}`,
+      impact: index === 0 ? "High" : "Medium",
+      reason: message,
+      ownerHint: "",
+      window: "",
+      rankScore: 0,
+    }));
+  }
+
+  if (Array.isArray(remoteActions) && remoteActions.length > 0) {
+    return remoteActions.map((action, index) => ({
+      title: action.title || action.label || `ML Action ${index + 1}`,
+      impact: action.impact || (index === 0 ? "High" : "Medium"),
+      reason: action.reason || action.summary || action.message || "AI-prioritized operational action.",
+      ownerHint: action.ownerHint || action.owner || "",
+      window: action.window || "",
+      rankScore: Number.isFinite(Number(action.rankScore)) ? Number(action.rankScore) : 0,
+    }));
+  }
+
+  return fallbackActions;
+};
+
 const buildFallbackInsights = ({ current, previous, windowDays, scoreSnapshot, records, period }) => {
   const buildingBenchmarks = buildBuildingBenchmarks(records);
   const currentDailyEnergy = current.count ? current.energy / Math.max(1, windowDays) : 0;
@@ -223,6 +249,7 @@ const buildFallbackInsights = ({ current, previous, windowDays, scoreSnapshot, r
     period: period || "week",
     windowDays,
     totalRecords: current.count,
+    model: null,
     mlStatus: {
       active: false,
       source: "js-fallback",
@@ -269,6 +296,10 @@ const buildFallbackInsights = ({ current, previous, windowDays, scoreSnapshot, r
       waterTrend: Number((waterDelta || 0).toFixed(2)),
       usageConsistency: score,
     },
+    training: null,
+    whatIf: null,
+    modelOps: null,
+    forecast: null,
   };
 };
 
@@ -327,13 +358,7 @@ exports.getExecutiveInsights = async (userId, period = "week") => {
       : buildBuildingBenchmarks(currentRecords.length ? currentRecords : records);
     const score = Number.isFinite(Number(scoreSnapshot?.score)) ? Number(scoreSnapshot.score) : fallbackScore;
     const riskLevel = normalizeRisk(score, remote.riskLevel);
-    const actions = Array.isArray(remote.recommendations) && remote.recommendations.length > 0
-      ? remote.recommendations.map((message, index) => ({
-          title: `ML Action ${index + 1}`,
-          impact: index === 0 ? "High" : "Medium",
-          reason: message,
-        }))
-      : buildActions({
+    const fallbackActions = buildActions({
           energyDelta: energyDelta || 0,
           waterDelta: waterDelta || 0,
           latest: current.latest,
@@ -341,12 +366,18 @@ exports.getExecutiveInsights = async (userId, period = "week") => {
           avgEnergy: current.avgEnergy,
           avgWater: current.avgWater,
         });
+    const actions = normalizeRemoteActions(
+      Array.isArray(remote.rankedActions) && remote.rankedActions.length ? remote.rankedActions : remote.recommendations,
+      fallbackActions
+    );
 
     const alertPressure = activeAlertsCount > 0 ? `${activeAlertsCount} active alert${activeAlertsCount > 1 ? "s" : ""}` : "no active alerts";
     const summary =
       remote.summary ||
       `ML analysis suggests ${riskLevel.toLowerCase()} risk over the current window with ${alertPressure}.`;
     const nextBestAction =
+      remote.nextBestAction ||
+      actions[0]?.title ||
       remote.recommendations?.[0] ||
       (riskLevel === "Critical"
         ? "Escalate immediately and inspect the active load or leakage source."
@@ -396,7 +427,11 @@ exports.getExecutiveInsights = async (userId, period = "week") => {
       statusLabel: severityFromScore(score),
       carbon: Math.round(current.energy * CARBON_FACTOR),
       estimatedCost: Math.round(current.energy * ENERGY_RATE + current.water * WATER_RATE),
-      monthlySavingsPotential: Math.max(0, Math.round((remote.forecast?.predictedEnergyNextDay || 0) * 0.1)),
+      monthlySavingsPotential: Math.max(
+        0,
+        Number(remote.whatIf?.projectedSavings) ||
+          Math.round((remote.forecast?.predictedEnergyNextDay || 0) * 0.1)
+      ),
       summary,
       rootCause,
       nextBestAction,
@@ -407,6 +442,9 @@ exports.getExecutiveInsights = async (userId, period = "week") => {
       forecast: remote.forecast || null,
       signalBreakdown: remote.signalBreakdown || null,
       confidenceReasons: Array.isArray(remote.confidenceReasons) ? remote.confidenceReasons : [],
+      training: remote.training || null,
+      whatIf: remote.whatIf || null,
+      modelOps: remote.modelOps || null,
       activeAlertsCount,
       criticalAlertsCount,
     };

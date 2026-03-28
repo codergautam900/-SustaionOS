@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
 import Card from "../ui/Card";
-import { Cpu, Gauge, Droplets, Zap } from "lucide-react";
+import { Cpu, Gauge, Droplets, Sparkles, Zap } from "lucide-react";
 import { ThemeContext } from "../../context/ThemeContext";
 import { getAuthToken } from "../../utils/auth";
 import { apiUrl } from "../../utils/api";
@@ -90,6 +90,65 @@ const PredictionCard = () => {
               <span>L water</span>
             </div>
           </div>
+          {(pred.predictedEnergyCI95 || pred.predictedWaterCI95) && (
+            <div className="grid grid-cols-1 gap-2 rounded-xl border border-dashed border-gray-200/70 p-3 text-xs text-gray-600 dark:border-gray-800 dark:text-gray-300 md:grid-cols-2">
+              <div>
+                <div className="font-semibold text-gray-800 dark:text-gray-100">Next hour energy band</div>
+                <div>
+                  {pred.predictedEnergyCI95?.low ?? "N/A"} to {pred.predictedEnergyCI95?.high ?? "N/A"} kWh
+                </div>
+              </div>
+              <div>
+                <div className="font-semibold text-gray-800 dark:text-gray-100">Next hour water band</div>
+                <div>
+                  {pred.predictedWaterCI95?.low ?? "N/A"} to {pred.predictedWaterCI95?.high ?? "N/A"} L
+                </div>
+              </div>
+            </div>
+          )}
+          {Array.isArray(pred.drivers) && pred.drivers.length > 0 ? (
+            <div className="rounded-xl border border-gray-200/70 bg-white/80 p-3 dark:border-gray-800 dark:bg-gray-950/40">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                <Sparkles size={12} />
+                Forecast Drivers
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {pred.drivers.slice(0, 4).map((driver, index) => (
+                  <span
+                    key={`${driver.label}-${index}`}
+                    className="rounded-full border border-gray-200 px-2.5 py-1 text-[11px] text-gray-600 dark:border-gray-800 dark:text-gray-300"
+                  >
+                    {driver.label}: {driver.value}
+                    {driver.unit || ""}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {Array.isArray(pred.forecastPath) && pred.forecastPath.length > 0 ? (
+            <div className="rounded-xl border border-gray-200/70 bg-white/80 p-3 dark:border-gray-800 dark:bg-gray-950/40">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                6-Hour Path Preview
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-3">
+                {pred.forecastPath.slice(0, 6).map((point) => (
+                  <div
+                    key={point.timestamp}
+                    className="rounded-lg border border-gray-200/70 px-2.5 py-2 dark:border-gray-800"
+                  >
+                    <div className="font-semibold text-gray-800 dark:text-gray-100">
+                      {new Date(point.timestamp).toLocaleTimeString("en-IN", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                    <div className="mt-1 text-gray-600 dark:text-gray-300">E {point.predictedEnergy}</div>
+                    <div className="text-gray-600 dark:text-gray-300">W {point.predictedWater}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="flex flex-wrap gap-2 text-xs opacity-70">
             <span>Avg energy {pred.predictedEnergyAvg}</span>
             <span>Avg water {pred.predictedWaterAvg}</span>

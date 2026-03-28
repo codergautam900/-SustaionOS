@@ -108,6 +108,13 @@ const Recommendations = () => {
                   <span className="text-xs rounded-full px-2 py-1 bg-gray-100 dark:bg-gray-800">{item.impact}</span>
                 </div>
                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{item.reason}</p>
+                {(item.ownerHint || item.window) && (
+                  <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                    {item.ownerHint ? `Owner: ${item.ownerHint}` : ""}
+                    {item.ownerHint && item.window ? " | " : ""}
+                    {item.window ? `Window: ${item.window}` : ""}
+                  </p>
+                )}
               </div>
             ))
           )}
