@@ -1,7 +1,9 @@
 const STORAGE_KEY = "sustainos:alert-sound";
+const EMERGENCY_SIREN_PATH = `${import.meta.env.BASE_URL}alert_siren.mp3`;
 
 let audioContext = null;
 let primed = false;
+let sirenAudio = null;
 
 const getAudioContext = () => {
   if (typeof window === "undefined") return null;
@@ -16,6 +18,48 @@ const getAudioContext = () => {
 const getSavedSoundPreference = () => {
   if (typeof window === "undefined") return "on";
   return window.localStorage.getItem(STORAGE_KEY) || "on";
+};
+
+const getEmergencySirenAudio = () => {
+  if (typeof window === "undefined") return null;
+
+  if (!sirenAudio) {
+    sirenAudio = new window.Audio(EMERGENCY_SIREN_PATH);
+    sirenAudio.preload = "auto";
+    sirenAudio.volume = 0.92;
+  }
+
+  return sirenAudio;
+};
+
+const preloadEmergencySiren = () => {
+  const audio = getEmergencySirenAudio();
+  if (!audio || audio.readyState > 0) return;
+
+  try {
+    audio.load();
+  } catch {
+    // Ignore preload errors and fall back to generated tones later.
+  }
+};
+
+const playEmergencySirenTrack = async () => {
+  const audio = getEmergencySirenAudio();
+  if (!audio) return false;
+
+  try {
+    audio.pause();
+    audio.currentTime = 0;
+  } catch {
+    // Ignore reset issues and still attempt playback.
+  }
+
+  try {
+    await audio.play();
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 const scheduleTone = (ctx, { startAt, frequency, duration, gain, type = "sine", sweepTo = null }) => {
@@ -178,8 +222,9 @@ const resolveSoundProfile = ({ priority = "LOW", type = "SYSTEM", title = "", me
   const resourceSpike =
     /(water|paani|leak|pipeline|tank|flow|energy|electricity|power|load|hvac|voltage|current)/.test(text) &&
     /(spike|high|critical|urgent|detected|alert|warning)/.test(text);
+  const emergencySignal = /(emergency|critical|urgent|evacuate|immediate)/.test(text);
 
-  if (resourceSpike && (severity === "HIGH" || category === "ALERT")) {
+  if (resourceSpike && (severity === "HIGH" || emergencySignal)) {
     return "resource-siren";
   }
 
@@ -213,6 +258,8 @@ export const primeAlertAudio = () => {
       primed = false;
     }
 
+    preloadEmergencySiren();
+
     if (primed) {
       window.removeEventListener("pointerdown", unlockAudio);
       window.removeEventListener("keydown", unlockAudio);
@@ -228,6 +275,13 @@ export const primeAlertAudio = () => {
 export const playAlertSound = async ({ priority = "LOW", type = "SYSTEM", title = "", message = "" } = {}) => {
   if (!isAlertSoundEnabled()) return false;
 
+  const profile = resolveSoundProfile({ priority, type, title, message });
+
+  if (profile === "resource-siren") {
+    const trackPlayed = await playEmergencySirenTrack();
+    if (trackPlayed) return true;
+  }
+
   const ctx = getAudioContext();
   if (!ctx) return false;
 
@@ -241,7 +295,6 @@ export const playAlertSound = async ({ priority = "LOW", type = "SYSTEM", title 
 
   if (ctx.state !== "running") return false;
 
-  const profile = resolveSoundProfile({ priority, type, title, message });
   const baseTime = ctx.currentTime + 0.02;
 
   if (profile === "resource-siren") {
