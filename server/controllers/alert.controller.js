@@ -4,6 +4,7 @@ const {
   enrichAlertPayload,
   sortIncidentQueue,
 } = require("../services/incidentWorkflow.service");
+const { recordAuditEvent } = require("../services/audit.service");
 
 exports.getAlerts = async (req, res) => {
 	try {
@@ -64,6 +65,21 @@ exports.updateAlert = async (req, res) => {
     );
 
     await alert.save();
+    await recordAuditEvent({
+      userId: req.user._id,
+      actor: req.user,
+      action: "alert.updated",
+      category: "operations",
+      severity: escalate ? "HIGH" : "INFO",
+      targetType: "alert",
+      targetId: String(alert._id),
+      metadata: {
+        status: alert.status,
+        escalationLevel: alert.escalationLevel,
+        ownerName: alert.ownerName,
+      },
+      req,
+    });
     return res.json({ success: true, alert: enrichAlertPayload(alert) });
   } catch (err) {
     console.error("Update Alert Error:", err);

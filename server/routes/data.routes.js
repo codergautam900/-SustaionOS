@@ -2,11 +2,11 @@ const router = require("express").Router();
 const Data = require("../models/Data");
 const { sendData, getHistory } = require("../controllers/data.Controller");
 const authMiddleware = require("../middleware/authMiddleware");
+const authOrApiKey = require("../middleware/authOrApiKey.middleware");
+const requireScope = require("../middleware/requireScope.middleware");
 const validate = require("../middleware/validate.middleware");
 
-router.use(authMiddleware);
-
-router.get("/", async (req, res) => {
+router.get("/", authMiddleware, async (req, res) => {
   try {
     const latest = await Data.findOne({ userId: req.user._id }).sort({ createdAt: -1 });
 
@@ -36,7 +36,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/history", getHistory);
-router.post("/", validate, sendData);
+router.get("/history", authMiddleware, getHistory);
+router.post("/", authOrApiKey, requireScope("ingest:telemetry"), validate, sendData);
 
 module.exports = router;

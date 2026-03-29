@@ -23,6 +23,7 @@ const routeLabels = {
   "/impact": "Impact",
   "/buildings": "Buildings",
   "/recommendations": "Mission Control",
+  "/workspace": "Workspace",
   "/notifications": "Notifications",
   "/profile": "Profile",
   "/settings": "Settings",

@@ -4,6 +4,7 @@ const {
   normalizeUserSettings,
   sanitizeSettingsPayload,
 } = require("../services/userSettings.service");
+const { recordAuditEvent } = require("../services/audit.service");
 
 exports.getSettings = async (req, res) => {
   try {
@@ -36,6 +37,17 @@ exports.updateSettings = async (req, res) => {
     );
 
     const response = settings.toObject();
+    await recordAuditEvent({
+      userId: req.user._id,
+      actor: req.user,
+      action: "settings.updated",
+      category: "workspace",
+      severity: "INFO",
+      targetType: "settings",
+      targetId: String(settings._id || req.user._id),
+      metadata: payload,
+      req,
+    });
     return res.json({
       ...response,
       ...normalizeUserSettings(response),
@@ -52,6 +64,18 @@ exports.deleteSettings = async (req, res) => {
 
     const defaults = await Settings.create({ user: req.user._id, ...DEFAULT_USER_SETTINGS });
     const payload = defaults.toObject();
+
+    await recordAuditEvent({
+      userId: req.user._id,
+      actor: req.user,
+      action: "settings.reset",
+      category: "workspace",
+      severity: "WARN",
+      targetType: "settings",
+      targetId: String(defaults._id || req.user._id),
+      metadata: { resetToDefault: true },
+      req,
+    });
 
     return res.json({
       success: true,

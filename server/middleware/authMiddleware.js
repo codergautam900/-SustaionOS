@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { normalizePlan, normalizeRole, normalizeStatus } = require("../services/accessControl.service");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -21,6 +22,9 @@ module.exports = async (req, res, next) => {
     const user = await User.findById(decoded._id).select("-password");
     if (!user) return res.status(401).json({ success: false, msg: "Invalid token user" });
 
+    user.role = normalizeRole(user.role);
+    user.plan = normalizePlan(user.plan);
+    user.status = normalizeStatus(user.status);
     req.user = user; // attach to request
     next();
 

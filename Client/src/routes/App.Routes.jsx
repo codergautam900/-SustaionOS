@@ -17,6 +17,7 @@ const Buildings = lazy(() => import("../pages/Buildings"));
 const Locations = lazy(() => import("../pages/Locations"));
 const Recommendations = lazy(() => import("../pages/Recommendations"));
 const Sensors = lazy(() => import("../pages/Sensors"));
+const Workspace = lazy(() => import("../pages/Workspace"));
 const Login = lazy(() => import("../pages/Login"));
 const Register = lazy(() => import("../pages/Register"));
 const Profile = lazy(() => import("../pages/Profile"));
@@ -51,6 +52,7 @@ const AppRoutes = () => {
       <Route path="/buildings" element={protectedPage(<Buildings />)} />
       <Route path="/locations" element={protectedPage(<Locations />)} />
       <Route path="/recommendations" element={protectedPage(<Recommendations />)} />
+      <Route path="/workspace" element={protectedPage(<Workspace />)} />
       <Route path="/sensors" element={protectedPage(<Sensors />)} />
       <Route path="/notifications" element={protectedPage(<Notifications />)} />
       <Route path="/settings" element={protectedPage(<Settings />)} />

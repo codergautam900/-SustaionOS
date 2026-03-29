@@ -3,6 +3,7 @@ const scoreService = require("../services/sustainabilityScore.engine");
 const executiveInsights = require("../services/executiveInsights.service");
 const mlBridge = require("../services/mlBridge.service");
 const commandCenterService = require("../services/commandCenter.service");
+const { recordAuditEvent } = require("../services/audit.service");
 
 // helper to compute startDate from period
 const computeStartDate = (period) => {
@@ -198,6 +199,21 @@ exports.trainModel = async (req, res, next) => {
         msg: "Python ML service unavailable for training.",
       });
     }
+
+    await recordAuditEvent({
+      userId: req.user._id,
+      actor: req.user,
+      action: "analytics.model_trained",
+      category: "analytics",
+      severity: "HIGH",
+      targetType: "ml_model",
+      targetId: req.user._id.toString(),
+      metadata: {
+        trainedOn: ordered.length,
+        requestedLimit: limit,
+      },
+      req,
+    });
 
     res.json({
       success: true,

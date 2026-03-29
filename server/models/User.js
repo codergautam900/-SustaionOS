@@ -6,7 +6,18 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   building: { type: String, default: "" },
-  role: { type: String, default: "user" },
+  role: { type: String, default: "ADMIN" },
+  organizationName: { type: String, default: "" },
+  organizationSlug: { type: String, default: "", index: true },
+  teamName: { type: String, default: "Operations" },
+  industry: { type: String, default: "Smart Buildings" },
+  timezone: { type: String, default: "Asia/Kolkata" },
+  plan: { type: String, default: "STARTER" },
+  status: { type: String, default: "ACTIVE" },
+  apiAccessEnabled: { type: Boolean, default: true },
+  mfaEnabled: { type: Boolean, default: false },
+  dataRetentionDays: { type: Number, default: 365 },
+  lastLoginAt: { type: Date, default: null },
 }, { timestamps: true });
 
 // ✅ Production-level pre-save hook
