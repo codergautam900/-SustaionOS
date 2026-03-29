@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const {
+  buildPlanUsage,
   buildWorkspaceDefaults,
   getRoleCapabilities,
   hasMinimumRole,
@@ -27,4 +28,17 @@ test("buildWorkspaceDefaults returns SaaS-ready account metadata", () => {
   assert.equal(typeof defaults.organizationSlug, "string");
   assert.equal(defaults.organizationSlug.includes("campus-ops"), true);
   assert.equal(getRoleCapabilities("owner").includes("manage:security"), true);
+});
+
+test("buildPlanUsage flags near-limit and exceeded quotas", () => {
+  const usage = buildPlanUsage("starter", {
+    members: 3,
+    apiKeys: 2,
+    sensors: 26,
+    monthlyTelemetry: 4200,
+  });
+
+  assert.equal(usage.plan, "STARTER");
+  assert.equal(usage.metrics.find((item) => item.key === "members").nearLimit, true);
+  assert.equal(usage.metrics.find((item) => item.key === "sensors").exceeded, true);
 });

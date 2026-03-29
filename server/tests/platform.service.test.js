@@ -19,6 +19,13 @@ test("buildPlatformOverviewSnapshot computes readiness and integration posture",
       createdAt: new Date("2026-01-01T00:00:00.000Z"),
       lastLoginAt: new Date("2026-03-28T00:00:00.000Z"),
     },
+    members: [
+      { _id: "u1", name: "A", email: "a@example.com", role: "OWNER", status: "ACTIVE" },
+      { _id: "u2", name: "B", email: "b@example.com", role: "ANALYST", status: "ACTIVE" },
+    ],
+    invites: [
+      { _id: "i1", invitedEmail: "c@example.com", role: "OPERATOR", status: "PENDING", token: "invite_123", expiresAt: new Date(Date.now() + 86400000) },
+    ],
     latestTelemetry: {
       timestamp: new Date().toISOString(),
     },
@@ -41,6 +48,9 @@ test("buildPlatformOverviewSnapshot computes readiness and integration posture",
   assert.equal(snapshot.workspace.plan, "GROWTH");
   assert.equal(snapshot.operations.sensors.total, 2);
   assert.equal(snapshot.operations.apiKeys.active, 1);
+  assert.equal(snapshot.team.membersCount, 2);
+  assert.equal(snapshot.team.pendingInvites, 1);
+  assert.equal(snapshot.planUsage.metrics.length >= 4, true);
   assert.equal(snapshot.integrations.length >= 3, true);
   assert.equal(typeof snapshot.readiness.score, "number");
 });

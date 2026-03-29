@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiUrl } from "../utils/api";
 
 const Register = () => {
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const inviteToken = useMemo(() => searchParams.get("inviteToken") || "", [searchParams]);
 
   const [name,setName]=useState("");
   const [email,setEmail]=useState("");
@@ -40,7 +42,8 @@ const Register = () => {
         body:JSON.stringify({
           name,
           email,
-          password
+          password,
+          inviteToken
         })
       });
 
@@ -70,13 +73,17 @@ const Register = () => {
         <div className="hidden overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(34,197,94,0.16),transparent_26%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.92))] p-10 text-white lg:flex lg:flex-col lg:justify-between">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100">
-              Join SustainOS
+              {inviteToken ? "Accept Workspace Invite" : "Join SustainOS"}
             </div>
             <h1 className="mt-6 max-w-lg text-4xl font-bold leading-tight">
-              Create an account and start turning campus data into action.
+              {inviteToken
+                ? "Join your team workspace and start operating from day one."
+                : "Create an account and start turning campus data into action."}
             </h1>
             <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300">
-              Register once, then track telemetry, alerts, reports, and AI guidance from one clean dashboard.
+              {inviteToken
+                ? "This invite will add your account to an existing SustainOS workspace with the assigned team role."
+                : "Register once, then track telemetry, alerts, reports, and AI guidance from one clean dashboard."}
             </p>
           </div>
 
@@ -100,8 +107,14 @@ const Register = () => {
             </h2>
 
             <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
-              Join SustainOS platform
+              {inviteToken ? "Finish your invite-based signup" : "Join SustainOS platform"}
             </p>
+
+            {inviteToken ? (
+              <div className="mt-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-700 dark:text-cyan-300">
+                Invite token detected. Register with the same email that received the invite.
+              </div>
+            ) : null}
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-800">

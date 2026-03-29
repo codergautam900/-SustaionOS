@@ -2124,3 +2124,4 @@ const generateAnswer = async ({ question, userId, context = {} }) => {
 };
 
 module.exports = { generateAnswer, getMemory, warmupLocalModel };
+

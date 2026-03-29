@@ -1,8 +1,10 @@
 const jwt = require("jsonwebtoken");
 
 const User = require("../models/User");
+const WorkspaceInvite = require("../models/WorkspaceInvite");
 const { buildWorkspaceDefaults, normalizePlan, normalizeRole, normalizeStatus } = require("../services/accessControl.service");
 const { recordAuditEvent } = require("../services/audit.service");
+const { isInviteExpired } = require("../services/workspaceInvite.service");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -38,25 +40,72 @@ const buildUserPayload = (user) => ({
 
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, organizationName } = req.body;
+    const { name, email, password, organizationName, inviteToken } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ msg: "All fields required" });
     }
 
-    const existing = await User.findOne({ email });
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const existing = await User.findOne({ email: normalizedEmail });
     if (existing) {
       return res.status(400).json({ msg: "User already exists" });
     }
 
-    const workspaceDefaults = buildWorkspaceDefaults({ name, email, organizationName });
+    let invite = null;
+    let inviter = null;
+    if (inviteToken) {
+      invite = await WorkspaceInvite.findOne({ token: String(inviteToken).trim() });
+      if (!invite) {
+        return res.status(400).json({ msg: "Invite token invalid" });
+      }
+      if (invite.status !== "PENDING" || isInviteExpired(invite)) {
+        return res.status(400).json({ msg: "Invite expired or already used" });
+      }
+      if (String(invite.invitedEmail || "").trim().toLowerCase() !== normalizedEmail) {
+        return res.status(400).json({ msg: "Invite email does not match the registering account" });
+      }
+      inviter = await User.findById(invite.invitedBy).select("-password");
+      if (!inviter) {
+        return res.status(400).json({ msg: "Invite owner not found" });
+      }
+    }
+
+    const workspaceDefaults = invite
+      ? {
+          organizationName: inviter.organizationName || invite.organizationName || "SustainOS Workspace",
+          organizationSlug: inviter.organizationSlug || invite.organizationSlug,
+          teamName: inviter.teamName || "Operations",
+          industry: inviter.industry || "Smart Buildings",
+          timezone: inviter.timezone || "Asia/Kolkata",
+          plan: inviter.plan || "STARTER",
+          role: invite.role || "ANALYST",
+          status: "ACTIVE",
+          apiAccessEnabled: inviter.apiAccessEnabled !== false,
+          mfaEnabled: false,
+          dataRetentionDays: inviter.dataRetentionDays || 365,
+          lastLoginAt: null,
+        }
+      : buildWorkspaceDefaults({ name, email: normalizedEmail, organizationName });
+
     const user = await User.create({
       name: String(name).trim(),
-      email: String(email).trim().toLowerCase(),
+      email: normalizedEmail,
       password,
       ...workspaceDefaults,
-      organizationName: organizationName ? String(organizationName).trim().slice(0, 80) : workspaceDefaults.organizationName,
+      organizationName: invite
+        ? inviter.organizationName || invite.organizationName || workspaceDefaults.organizationName
+        : organizationName
+            ? String(organizationName).trim().slice(0, 80)
+            : workspaceDefaults.organizationName,
     });
+
+    if (invite) {
+      invite.status = "ACCEPTED";
+      invite.acceptedBy = user._id;
+      invite.acceptedAt = new Date();
+      await invite.save();
+    }
 
     const token = generateToken(user._id);
 
@@ -71,9 +120,27 @@ exports.register = async (req, res, next) => {
       metadata: {
         organizationName: user.organizationName,
         plan: user.plan,
+        inviteAccepted: Boolean(invite),
       },
       req,
     });
+
+    if (invite) {
+      await recordAuditEvent({
+        userId: inviter._id,
+        actor: user,
+        action: "workspace.invite.accepted",
+        category: "workspace",
+        severity: "INFO",
+        targetType: "invite",
+        targetId: String(invite._id),
+        metadata: {
+          invitedEmail: invite.invitedEmail,
+          role: invite.role,
+        },
+        req,
+      });
+    }
 
     res.status(201).json({
       success: true,
