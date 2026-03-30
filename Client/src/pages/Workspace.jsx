@@ -15,7 +15,7 @@ import {
 import Card from "../components/ui/Card";
 import { AuthContext } from "../context/auth-context";
 import { getAuthToken } from "../utils/auth";
-import { apiUrl, getApiBase } from "../utils/api";
+import { apiUrl, fetchJson, getApiBase } from "../utils/api";
 
 const scopeOptions = [
   { value: "ingest:telemetry", label: "Telemetry ingest" },
@@ -34,6 +34,7 @@ const Workspace = () => {
   const apiBase = useMemo(() => getApiBase() || window.location.origin, []);
 
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [overview, setOverview] = useState(null);
   const [apiKeys, setApiKeys] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
@@ -79,15 +80,16 @@ const Workspace = () => {
     if (!token) return setLoading(false);
     try {
       setLoading(true);
+      setLoadError("");
       const headers = { Authorization: `Bearer ${token}` };
       const [overviewRes, profileRes] = await Promise.all([
-        fetch(apiUrl("/api/platform/overview"), { headers }),
-        fetch(apiUrl("/api/user/profile"), { headers }),
+        fetchJson("/api/platform/overview", { headers }, 12000),
+        fetchJson("/api/user/profile", { headers }, 12000),
       ]);
-      const overviewJson = await overviewRes.json();
-      const profileJson = await profileRes.json();
-      if (!overviewRes.ok) throw new Error(overviewJson.msg || "Workspace overview failed");
-      if (!profileRes.ok) throw new Error(profileJson.msg || "Profile load failed");
+      const overviewJson = overviewRes.data || {};
+      const profileJson = profileRes.data || {};
+      if (!overviewRes.ok) throw new Error(overviewJson.msg || overviewJson.error || "Workspace overview failed");
+      if (!profileRes.ok) throw new Error(profileJson.msg || profileJson.error || "Profile load failed");
 
       const resolvedRole = overviewJson.workspace?.role || profileJson.user?.role || "";
       let keysJson = { apiKeys: [] };
@@ -96,10 +98,10 @@ const Workspace = () => {
       if (canManageWorkspaceRole(resolvedRole) || canReadAuditFeed(resolvedRole)) {
         const optionalRequests = [];
         if (canManageWorkspaceRole(resolvedRole)) {
-          optionalRequests.push(fetch(apiUrl("/api/platform/api-keys"), { headers }));
+          optionalRequests.push(fetchJson("/api/platform/api-keys", { headers }, 12000));
         }
         if (canReadAuditFeed(resolvedRole)) {
-          optionalRequests.push(fetch(apiUrl("/api/platform/audit?limit=8"), { headers }));
+          optionalRequests.push(fetchJson("/api/platform/audit?limit=8", { headers }, 12000));
         }
 
         const optionalResponses = await Promise.all(optionalRequests);
@@ -107,16 +109,14 @@ const Workspace = () => {
 
         if (canManageWorkspaceRole(resolvedRole)) {
           const keysRes = optionalResponses[responseIndex++];
-          const parsedKeys = await keysRes.json();
-          if (!keysRes.ok) throw new Error(parsedKeys.msg || "API key load failed");
-          keysJson = parsedKeys;
+          if (!keysRes.ok) throw new Error(keysRes.data?.msg || keysRes.data?.error || "API key load failed");
+          keysJson = keysRes.data || {};
         }
 
         if (canReadAuditFeed(resolvedRole)) {
           const auditRes = optionalResponses[responseIndex++];
-          const parsedAudit = await auditRes.json();
-          if (!auditRes.ok) throw new Error(parsedAudit.msg || "Audit load failed");
-          auditJson = parsedAudit;
+          if (!auditRes.ok) throw new Error(auditRes.data?.msg || auditRes.data?.error || "Audit load failed");
+          auditJson = auditRes.data || {};
         }
       }
 
@@ -136,6 +136,7 @@ const Workspace = () => {
       });
       updateUser(profileJson.user);
     } catch (err) {
+      setLoadError(err.message || "Workspace load failed");
       toast.error(err.message || "Workspace load failed");
     } finally {
       setLoading(false);
@@ -294,6 +295,18 @@ const Workspace = () => {
           <button onClick={loadWorkspace} className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-black"><RefreshCcw size={16} />Refresh</button>
         </div>
       </Card>
+
+      {loadError ? (
+        <Card className="border border-red-200/80 bg-red-50/80 p-5 dark:border-red-900/50 dark:bg-red-950/30">
+          <h2 className="text-lg font-semibold text-red-700 dark:text-red-300">Workspace load issue</h2>
+          <p className="mt-2 text-sm text-red-600 dark:text-red-200">
+            {loadError}
+          </p>
+          <p className="mt-2 text-sm text-red-600/80 dark:text-red-200/80">
+            Check that the backend is running and that your login session is still valid, then refresh workspace.
+          </p>
+        </Card>
+      ) : null}
 
       {overview ? <>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">

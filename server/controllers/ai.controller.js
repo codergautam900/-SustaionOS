@@ -65,6 +65,14 @@ exports.forecast = async (req, res) => {
     if (!userId) return res.status(401).json({ msg: "Unauthorized" });
 
     const history = await Data.find({ userId }).sort({ timestamp: -1 }).limit(48);
+    if (!history.length) {
+      return res.json({
+        status: "success",
+        msg: "No telemetry data available yet for forecasting.",
+        prediction: null,
+      });
+    }
+
     const prediction = await predictService.predictNext(history);
 
     return res.json({ status: "success", prediction });

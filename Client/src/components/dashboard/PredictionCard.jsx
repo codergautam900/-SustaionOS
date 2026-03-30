@@ -3,17 +3,19 @@ import Card from "../ui/Card";
 import { Cpu, Gauge, Droplets, Sparkles, Zap } from "lucide-react";
 import { ThemeContext } from "../../context/ThemeContext";
 import { getAuthToken } from "../../utils/auth";
-import { apiUrl } from "../../utils/api";
+import { fetchJson } from "../../utils/api";
 
 const PredictionCard = () => {
   const { darkMode } = useContext(ThemeContext);
   const [loading, setLoading] = useState(true);
   const [pred, setPred] = useState(null);
   const [err, setErr] = useState(null);
+  const [emptyState, setEmptyState] = useState("");
 
   useEffect(() => {
     const fetchPred = async () => {
       setErr(null);
+      setEmptyState("");
       try {
         const token = getAuthToken();
         if (!token) {
@@ -22,19 +24,25 @@ const PredictionCard = () => {
           return;
         }
 
-        const res = await fetch(apiUrl("/api/ai/forecast"), {
+        const res = await fetchJson("/api/ai/forecast", {
           method: "POST",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        });
+        }, 12000);
 
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          setErr(body.msg || "Failed to fetch predictions");
+          const body = res.data || {};
+          setErr(body.msg || body.error || "Failed to fetch predictions");
           setLoading(false);
           return;
         }
 
-        const data = await res.json();
+        const data = res.data || {};
+        if (!data.prediction) {
+          setPred(null);
+          setEmptyState(data.msg || "No telemetry data available yet for ML forecast. Add a few readings first.");
+          return;
+        }
+
         setPred(data.prediction || null);
       } catch (e) {
         console.error("Prediction fetch error", e);
@@ -64,6 +72,11 @@ const PredictionCard = () => {
 
       {loading && <div className="text-sm opacity-70">Loading predictions...</div>}
       {err && <div className="text-sm text-red-500">{err}</div>}
+      {emptyState && !loading && !err && (
+        <div className="rounded-xl border border-dashed border-gray-200/70 p-4 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-300">
+          {emptyState}
+        </div>
+      )}
       {pred && (
         <div className="space-y-3 text-sm">
           <div className="grid grid-cols-1 gap-2 rounded-xl border border-gray-200/70 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/40 md:grid-cols-2">

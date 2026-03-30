@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { ThemeContext } from "../../context/ThemeContext";
 import { getAuthToken } from "../../utils/auth";
-import { apiUrl } from "../../utils/api";
+import { fetchJson } from "../../utils/api";
 
 const toneStyles = {
   Low: "bg-emerald-500/15 text-emerald-500 border-emerald-500/20",
@@ -26,10 +26,12 @@ const ExecutiveInsightsPanel = ({ period = "week", compact = false }) => {
   const [loading, setLoading] = useState(true);
   const [retraining, setRetraining] = useState(false);
   const [trainMessage, setTrainMessage] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   const loadInsights = useCallback(async (isMounted = () => true) => {
     try {
       setLoading(true);
+      setLoadError("");
       const token = getAuthToken();
 
       if (!token) {
@@ -37,20 +39,23 @@ const ExecutiveInsightsPanel = ({ period = "week", compact = false }) => {
         return;
       }
 
-      const res = await fetch(apiUrl(`/api/analytics/insights?period=${period}`), {
+      const res = await fetchJson(`/api/analytics/insights?period=${period}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      });
+      }, 12000);
 
-      if (!res.ok) throw new Error("Failed to load insights");
+      if (!res.ok) throw new Error(res.data?.msg || res.data?.error || "Failed to load insights");
 
-      const json = await res.json();
+      const json = res.data || {};
       if (isMounted()) setData(json);
     } catch (err) {
       console.error("Insights fetch error:", err);
-      if (isMounted()) setData(null);
+      if (isMounted()) {
+        setData(null);
+        setLoadError(err.message || "Failed to load insights");
+      }
     } finally {
       if (isMounted()) setLoading(false);
     }
@@ -75,18 +80,18 @@ const ExecutiveInsightsPanel = ({ period = "week", compact = false }) => {
         return;
       }
 
-      const res = await fetch(apiUrl("/api/analytics/model/train"), {
+      const res = await fetchJson("/api/analytics/model/train", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ limit: 240 }),
-      });
+      }, 15000);
 
-      const json = await res.json().catch(() => ({}));
+      const json = res.data || {};
       if (!res.ok) {
-        setTrainMessage(json.msg || "Model retraining failed.");
+        setTrainMessage(json.msg || json.error || "Model retraining failed.");
         return;
       }
 
@@ -477,7 +482,7 @@ const ExecutiveInsightsPanel = ({ period = "week", compact = false }) => {
         </div>
       ) : (
         <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-6 text-sm text-gray-500 dark:text-gray-400">
-          No insights available yet. Add live telemetry to unlock action plans.
+          {loadError || "No insights available yet. Add live telemetry and make sure the backend plus ML service are running."}
         </div>
       )}
     </Card>

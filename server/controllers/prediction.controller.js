@@ -12,6 +12,15 @@ exports.getPrediction = async (req, res) => {
       .sort({ timestamp: -1, createdAt: -1 })
       .limit(limit);
 
+    if (!records.length) {
+      return res.json({
+        success: true,
+        basedOn: 0,
+        msg: "No telemetry data available yet for forecasting.",
+        prediction: null,
+      });
+    }
+
     const result = await predict(records);
 
     return res.json({
