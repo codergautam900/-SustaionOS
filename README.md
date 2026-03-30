@@ -8,6 +8,8 @@
 
 SustainOS AI is a full-stack sustainability operations platform for smart buildings, campuses, enterprises, and public infrastructure. It turns raw water and energy telemetry into alerts, AI explanations, forecasts, incident queues, and an execution-focused Mission Control dashboard so teams can reduce waste instead of just watching charts.
 
+For judges and reviewers using the deployed app, start with [JUDGE_GUIDE.md](JUDGE_GUIDE.md).
+
 ## Tagline
 
 From raw building telemetry to operational decisions.
@@ -258,7 +260,8 @@ Current Render service dashboard links:
 Note:
 
 - These are Render dashboard and service-management links.
-- If you want public judge-facing app URLs, replace these with the deployed public domain URLs from Render.
+- Judges should not use these links directly.
+- Replace these with the deployed public domain URLs from Render in [JUDGE_GUIDE.md](JUDGE_GUIDE.md) before submission.
 
 ### Demo Video
 
