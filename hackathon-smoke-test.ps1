@@ -31,14 +31,15 @@ function Invoke-Check {
 }
 
 $frontendOk = Invoke-Check -Name "Frontend" -Url ($FrontendUrl.TrimEnd("/"))
-$backendOk = Invoke-Check -Name "Backend Health" -Url ("{0}/api/health" -f $BackendUrl.TrimEnd("/"))
+$backendLiveOk = Invoke-Check -Name "Backend Liveness" -Url ("{0}/api/health/live" -f $BackendUrl.TrimEnd("/"))
+$backendReadyOk = Invoke-Check -Name "Backend Readiness" -Url ("{0}/api/health/ready" -f $BackendUrl.TrimEnd("/"))
 
 $mlOk = $true
 if ($MlUrl) {
   $mlOk = Invoke-Check -Name "ML Health" -Url ("{0}/health" -f $MlUrl.TrimEnd("/"))
 }
 
-if ($frontendOk -and $backendOk -and $mlOk) {
+if ($frontendOk -and $backendLiveOk -and $backendReadyOk -and $mlOk) {
   Write-Host ""
   Write-Host "All deploy smoke checks passed." -ForegroundColor Green
   exit 0

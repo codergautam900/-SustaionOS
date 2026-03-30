@@ -21,6 +21,7 @@ const Workspace = lazy(() => import("../pages/Workspace"));
 const Login = lazy(() => import("../pages/Login"));
 const Register = lazy(() => import("../pages/Register"));
 const Profile = lazy(() => import("../pages/Profile"));
+const NotFound = lazy(() => import("../pages/NotFound"));
 
 const pageFallback = (
   <div className="p-10 text-center text-sm text-gray-500 dark:text-gray-400">
@@ -57,6 +58,7 @@ const AppRoutes = () => {
       <Route path="/notifications" element={protectedPage(<Notifications />)} />
       <Route path="/settings" element={protectedPage(<Settings />)} />
       <Route path="/profile" element={protectedPage(<Profile />)} />
+      <Route path="*" element={withSuspense(<NotFound />)} />
     </Routes>
   );
 };

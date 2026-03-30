@@ -8,16 +8,17 @@ const { isInviteExpired } = require("../services/workspaceInvite.service");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET is missing in environment variables");
-}
+const generateToken = (userId) => {
+  if (!JWT_SECRET) {
+    throw new Error("JWT configuration missing");
+  }
 
-const generateToken = (userId) =>
-  jwt.sign(
+  return jwt.sign(
     { _id: userId },
     JWT_SECRET,
     { expiresIn: "7d" }
   );
+};
 
 const buildUserPayload = (user) => ({
   _id: user._id,

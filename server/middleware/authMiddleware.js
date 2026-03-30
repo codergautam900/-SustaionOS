@@ -4,12 +4,12 @@ const { normalizePlan, normalizeRole, normalizeStatus } = require("../services/a
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET is missing in environment variables");
-}
-
 module.exports = async (req, res, next) => {
   try {
+    if (!JWT_SECRET) {
+      return res.status(500).json({ success: false, msg: "JWT configuration missing" });
+    }
+
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ success: false, msg: "No token provided" });
