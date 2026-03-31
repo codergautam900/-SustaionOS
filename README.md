@@ -10,13 +10,6 @@ SustainOS AI is a full-stack sustainability operations platform for smart buildi
 
 For judges and reviewers using the deployed app, start with [JUDGE_GUIDE.md](JUDGE_GUIDE.md).
 
-flowchart LR
-  A[User / Sensors] --> B[React Frontend]
-  B --> C[Node.js API]
-  C --> D[(MongoDB)]
-  C --> E[Python ML Service]
-  C --> F[AI Layer]
-  C --> B
   
 ## Tagline
 
@@ -90,14 +83,23 @@ The AI layer helps users understand the state of operations in natural language.
 
 ### 3. SaaS Workspace
 
-The platform includes a real SaaS-style operational layer.
+- The platform includes a fully functional SaaS-style operational layer that enables organizations to manage their teams, data, and system access in a structured and secure way.
 
-- workspace profile
-- owner, admin, operator, analyst, and viewer roles
-- invite-based team onboarding
-- plan-aware workspace controls
-- API key creation and revocation
-- audit trail for critical actions
+- At the core of this layer is the concept of a workspace, which represents an individual organization (such as a campus, company, or facility). Each workspace operates independently, ensuring proper data isolation and scalability across multiple tenants.
+
+### Workspace Profile
+
+- Each organization can configure its own workspace with relevant details such as name, type, and operational context. This acts as the central unit for managing all users, sensors, and data.
+- Role-Based Access Control (RBAC)
+- The system defines multiple roles — Owner, Admin, Operator, Analyst, and Viewer — each with specific permissions. This ensures that users only access what they are authorized to, improving both security and operational clarity.
+- Invite-Based Team Onboarding
+- New users can be added to a workspace through secure invite links. This allows organizations to easily onboard team members without manual account setup, supporting scalable collaboration.
+- Plan-Aware Workspace Controls
+- The platform is designed with SaaS monetization in mind. Features and capabilities can be controlled based on the workspace plan (e.g., limiting sensors, analytics depth, or AI usage), making it ready for subscription-based models.
+- API Key Creation and Revocation
+- Workspaces can generate and manage API keys for integrating external systems such as IoT devices, sensors, or gateways. Keys can be revoked at any time to maintain security and control over data ingestion.
+- Audit Trail for Critical Actions
+- All important actions (such as user changes, API key usage, or configuration updates) are logged. This provides transparency, accountability, and traceability — which are essential for enterprise-grade systems.
 
 ### 4. Sensor and IoT Operations
 
