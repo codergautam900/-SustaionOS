@@ -289,20 +289,23 @@ Current deployed links:
 - `Live API Base`: `https://sustaionos-open-source-sustainability-ip3w.onrender.com`
 - `Live API Health`: `https://sustaionos-open-source-sustainability-ip3w.onrender.com/api/health`
 - `Live ML Health`: `https://sustaionos-open-source-sustainability-do10.onrender.com/health`
-- `Demo Video`: `Upload a public YouTube, Loom, Drive, or hosted link here`
-- `Local Demo File`: [`demo.mp4`](demo.mp4)
+- `Demo Video`: [`demo.mp4`](demo.mp4)
+- `Demo Duration`: `~3 minutes`
+- `Demo File Size`: `~180 MB`
 
 ### Demo Video
 
-The current local demo recording is about `180 MB`, which is too large for a reliable GitHub README video experience.
+A `3-minute` walkthrough is now included directly in this repository.
 
-For the final public README, upload a compressed demo to YouTube, Loom, Google Drive, or another public host, then replace the placeholder link above.
+If your markdown viewer does not show inline playback, click the preview image or open the direct file link below. On GitHub, large video files may open in a new tab or take a moment to load because the file is about `180 MB`.
+
+[![SustainOS AI demo preview](screenshots/Dashboard.jpeg)](demo.mp4)
 
 Preview frame:
 
 ![SustainOS AI demo preview](screenshots/Dashboard.jpeg)
 
-Local file for IDE preview: [demo.mp4](demo.mp4)
+Direct video file: [demo.mp4](demo.mp4)
 
 ### Best Demo Story
 
