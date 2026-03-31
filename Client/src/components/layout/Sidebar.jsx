@@ -17,6 +17,8 @@ import {
   X,
 } from "lucide-react";
 
+// Add pages name , path with Icons to move different different pages without Loading
+
 const menuItems = [
   { name: "Dashboard", path: "/", icon: LayoutDashboard },
   { name: "Analytics", path: "/analytics", icon: BarChart3 },
@@ -33,6 +35,8 @@ const menuItems = [
   { name: "Settings", path: "/settings", icon: Settings },
   { name: "Profile", path: "/profile", icon: User },
 ];
+
+{/* Add isOpen and setIsOpen for controll sideBar with transition*/}
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   return (
