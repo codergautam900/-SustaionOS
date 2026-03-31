@@ -13,8 +13,8 @@ For judges and reviewers using the deployed app, start with [JUDGE_GUIDE.md](JUD
 ## Quick Links
 
 - Judges: [JUDGE_GUIDE.md](JUDGE_GUIDE.md)
-- Product screenshots: [Screenshots](#screenshots)
 - Demo and validation: [Demo](#demo)
+- Screenshots: [Screenshots](#screenshots)
 - Local setup: [Local Setup](#local-setup)
 - Deployment notes: [Deployment](#deployment)
 
@@ -26,13 +26,13 @@ For judges and reviewers using the deployed app, start with [JUDGE_GUIDE.md](JUD
 | Product | SustainOS AI is an operational sustainability platform, not just a dashboard. |
 | Users | Facilities teams, campus operators, smart-building admins, and sustainability leads. |
 | Core differentiator | It turns live telemetry into ranked hotspots, alerts, AI guidance, and an execution-ready Mission Control workflow. |
-| Technical proof | Full-stack web app, ML microservice, real SaaS workspace layer, smoke checks, and seeded end-to-end demo scripts. |
+| Technical proof | Full-stack web app, ML microservice, SaaS workspace layer, smoke checks, and seeded end-to-end demo scripts. |
 
 ## What SustainOS AI Does
 
 SustainOS AI helps organizations detect utility waste, explain risk, and prioritize action across buildings, campuses, and infrastructure portfolios.
 
-Instead of only visualizing charts, the platform connects telemetry ingestion, anomaly detection, alerts, building ranking, ML forecasting, AI explanations, and SaaS workspace controls in one product.
+Instead of only visualizing charts, the platform connects telemetry ingestion, anomaly detection, alerts, building ranking, ML forecasting, AI explanations, and workspace controls in one product.
 
 ## Problem
 
@@ -47,7 +47,7 @@ Water and energy waste usually stays hidden because operations teams work across
 ## Why This Project Stands Out
 
 - It is execution-focused. Mission Control ranks buildings by risk and savings opportunity instead of stopping at passive analytics.
-- It has real product depth. The repo includes auth, roles, invites, API keys, audit logs, and workspace management, not just a single dashboard page.
+- It has real product depth. The repo includes auth, roles, invites, API keys, audit logs, and workspace management.
 - It supports multiple data-entry paths. Teams can work with manual telemetry, sensors, gateways, and webhook-style ingest.
 - It is verifiable. The project includes health checks, test coverage, and a seeded end-to-end demo script that exercises the main product journey.
 
@@ -61,11 +61,11 @@ Water and energy waste usually stays hidden because operations teams work across
 - Provides natural-language AI explanations and guided next actions
 - Ranks hotspots in a Mission Control dashboard with savings and risk context
 - Tracks sensors, low-battery devices, weak signal quality, and telemetry health
-- Supports workspace-level SaaS operations with roles, invites, plans, API keys, and audit logs
+- Supports SaaS workspace operations with roles, invites, plans, API keys, and audit logs
 
 ## Recommended Judge Flow
 
-If a judge wants the fastest product understanding path, this is the best sequence:
+If a judge wants the fastest understanding path, this is the best sequence:
 
 1. Dashboard
 2. Mission Control / Recommendations
@@ -73,7 +73,7 @@ If a judge wants the fastest product understanding path, this is the best sequen
 4. Sensors
 5. Workspace
 6. Analytics
-7. AI Assistant
+7. AI Copilot
 
 This flow is expanded in [JUDGE_GUIDE.md](JUDGE_GUIDE.md).
 
@@ -111,7 +111,7 @@ The Mission Control layer ranks buildings by risk and opportunity, then translat
 
 The AI layer helps users understand the state of operations in natural language.
 
-- contextual Q and A
+- contextual Q&A
 - forecast explanation
 - live-data-aware responses
 - fallback logic when external LLMs are unavailable
@@ -119,23 +119,14 @@ The AI layer helps users understand the state of operations in natural language.
 
 ### 3. SaaS Workspace
 
-- The platform includes a fully functional SaaS-style operational layer that enables organizations to manage their teams, data, and system access in a structured and secure way.
+SustainOS AI includes a real workspace layer so teams can manage access, integrations, and operations in a production-style SaaS model.
 
-- At the core of this layer is the concept of a workspace, which represents an individual organization (such as a campus, company, or facility). Each workspace operates independently, ensuring proper data isolation and scalability across multiple tenants.
-
-### Workspace Profile
-
-- Each organization can configure its own workspace with relevant details such as name, type, and operational context. This acts as the central unit for managing all users, sensors, and data.
-- Role-Based Access Control (RBAC)
-- The system defines multiple roles — Owner, Admin, Operator, Analyst, and Viewer — each with specific permissions. This ensures that users only access what they are authorized to, improving both security and operational clarity.
-- Invite-Based Team Onboarding
-- New users can be added to a workspace through secure invite links. This allows organizations to easily onboard team members without manual account setup, supporting scalable collaboration.
-- Plan-Aware Workspace Controls
-- The platform is designed with SaaS monetization in mind. Features and capabilities can be controlled based on the workspace plan (e.g., limiting sensors, analytics depth, or AI usage), making it ready for subscription-based models.
-- API Key Creation and Revocation
-- Workspaces can generate and manage API keys for integrating external systems such as IoT devices, sensors, or gateways. Keys can be revoked at any time to maintain security and control over data ingestion.
-- Audit Trail for Critical Actions
-- All important actions (such as user changes, API key usage, or configuration updates) are logged. This provides transparency, accountability, and traceability — which are essential for enterprise-grade systems.
+- isolated workspaces for campuses, companies, and facilities
+- role-based access for Owner, Admin, Operator, Analyst, and Viewer
+- invite-based onboarding for fast team setup
+- plan-aware feature controls for multi-tenant growth
+- API key creation and revocation for devices, sensors, and gateways
+- audit logs for critical admin and configuration changes
 
 ### 4. Sensor and IoT Operations
 
@@ -156,7 +147,7 @@ The AI layer helps users understand the state of operations in natural language.
 
 1. A user creates an account or joins a workspace through an invite.
 2. The workspace owner configures organization details, plan, roles, and API access.
-3. Telemetry is sent through manual input, sensor endpoints, or gateway/webhook APIs.
+3. Telemetry is sent through manual input, sensor endpoints, or gateway APIs.
 4. The backend stores the data in MongoDB and syncs sensor heartbeat information.
 5. Detection logic evaluates spikes, drift, and anomaly patterns.
 6. Alerts and notifications are generated when a risk threshold is crossed.
@@ -181,6 +172,8 @@ flowchart LR
   C --> B
 ```
 
+## System Design
+
 ### Frontend
 
 - React 19
@@ -188,7 +181,7 @@ flowchart LR
 - Tailwind CSS
 - Recharts and Chart.js
 - Socket.IO client
-- Role-aware protected routes
+- role-aware protected routes
 
 Core views:
 
@@ -231,23 +224,10 @@ Key API areas:
 - model training
 - profile voice parsing
 
-### Data Models
-
-- User
-- Data
-- Alert
-- Notification
-- SensorDevice
-- ApiKey
-- AuditLog
-- WorkspaceInvite
-- ConversationMemory
-- UserSettings
-
 ## Repository Structure
 
 ```text
-SustainOS Ai/
+project-root/
 |-- Client/
 |   |-- src/
 |   |   |-- components/
@@ -278,6 +258,7 @@ SustainOS Ai/
 |-- start-dev.ps1
 |-- hackathon-smoke-test.ps1
 |-- full-e2e-demo.ps1
+|-- JUDGE_GUIDE.md
 |-- DEPLOYMENT.md
 |-- render.yaml
 |-- README.md
@@ -290,35 +271,22 @@ SustainOS Ai/
 - Backend: Node.js, Express, Mongoose, Socket.IO, JWT
 - Database: MongoDB
 - ML: Python service
-- AI Providers: Ollama by default, optional OpenAI and Gemini
+- AI providers: Ollama by default, optional OpenAI and Gemini
 - Deployment: Render-ready backend and ML blueprint, static frontend compatible
 
 ## Demo
 
 ### Judge Note
 
-Before submission, add the public deployed URLs in [JUDGE_GUIDE.md](JUDGE_GUIDE.md). The links below are current maintainer-facing Render dashboard links, not judge-facing product URLs.
+Put the final public app links in [JUDGE_GUIDE.md](JUDGE_GUIDE.md). Do not share Render dashboard links with judges.
 
-### Live Deployment
+### Public Demo Links
 
-Current available service links:
+Replace these placeholders before submission:
 
-| Service | Current link type | Link |
-| --- | --- | --- |
-| Frontend | Render dashboard | `https://dashboard.render.com/static/srv-d71tiqm3jp1c739ijndg` |
-| Backend | Render dashboard | `https://dashboard.render.com/web/srv-d71td6v5gffc73839o7g` |
-| ML Service | Render dashboard | `https://dashboard.render.com/web/srv-d71u7nlm5p6s73a1od60` |
-
-Note:
-
-- These are Render dashboard and service-management links.
-- Judges should not use these links directly.
-- Replace these with the deployed public domain URLs from Render in [JUDGE_GUIDE.md](JUDGE_GUIDE.md) before submission.
-
-### Demo Video
-
-Add your final demo link here:
-
+- `Live App`: `PASTE_PUBLIC_FRONTEND_URL_HERE`
+- `Live API Health`: `PASTE_PUBLIC_BACKEND_URL_HERE/api/health/ready`
+- `Live ML Health`: `PASTE_PUBLIC_ML_URL_HERE/health`
 - `Demo Video`: `PASTE_YOUR_DEMO_VIDEO_LINK_HERE`
 
 ### Best Demo Story
@@ -334,12 +302,10 @@ Suggested demo flow:
 
 ### Built-In Demo Validation
 
-This repo includes two scripts that make the project easier to validate during demo prep and judging:
+This repo includes two scripts that make demo prep and judging easier:
 
 - `hackathon-smoke-test.ps1`
-  Verifies frontend, backend, and ML health endpoints.
 - `full-e2e-demo.ps1`
-  Creates a fresh workspace, seeds realistic telemetry, triggers alerts, trains the ML model, and verifies core APIs end to end.
 
 Example:
 
@@ -351,7 +317,7 @@ Example:
 .\full-e2e-demo.ps1 -FrontendUrl http://127.0.0.1:4173 -BackendUrl http://127.0.0.1:5000 -MlUrl http://127.0.0.1:8000
 ```
 
-What the seeded demo validates:
+The seeded demo validates:
 
 - account registration
 - workspace profile update
@@ -363,119 +329,52 @@ What the seeded demo validates:
 - Mission Control hotspot ranking
 - alerts and notifications
 - ML training and prediction
-- AI forecast and Q and A
+- AI forecast and Q&A
 
 ## Screenshots
 
-The gallery below follows a product walkthrough from onboarding to operational action, reporting, and workspace management. Every image is sourced from the current `screenshots/` folder.
+The gallery below follows the product from monitoring to action.
 
 <table>
   <tr>
     <td align="center" width="50%">
-      <img src="screenshots/Register.jpeg" alt="Register Account" width="100%" />
+      <img src="screenshots/Dashboard.jpeg" alt="Dashboard" width="100%" />
       <br />
-      <strong>1. Register Account</strong>
+      <strong>Dashboard</strong>
     </td>
     <td align="center" width="50%">
-      <img src="screenshots/login.jpeg" alt="Login" width="100%" />
+      <img src="screenshots/Mission-control.jpeg" alt="Mission Control" width="100%" />
       <br />
-      <strong>2. Login</strong>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="50%">
-      <img src="screenshots/Dashboard.jpeg" alt="Dashboard Overview" width="100%" />
-      <br />
-      <strong>3. Dashboard Overview</strong>
-    </td>
-    <td align="center" width="50%">
-      <img src="screenshots/Locations.jpeg" alt="Location Overview" width="100%" />
-      <br />
-      <strong>4. Location Overview</strong>
+      <strong>Mission Control</strong>
     </td>
   </tr>
   <tr>
     <td align="center" width="50%">
-      <img src="screenshots/Buildings.jpeg" alt="Building Comparison" width="100%" />
+      <img src="screenshots/Alerts.png" alt="Alerts" width="100%" />
       <br />
-      <strong>5. Building Comparison</strong>
+      <strong>Alerts</strong>
     </td>
     <td align="center" width="50%">
-      <img src="screenshots/Mission-control.jpeg" alt="Mission Control Recommendations" width="100%" />
+      <img src="screenshots/Analytics.jpeg" alt="Analytics" width="100%" />
       <br />
-      <strong>6. Mission Control Recommendations</strong>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="50%">
-      <img src="screenshots/Alerts.png" alt="Alert Center" width="100%" />
-      <br />
-      <strong>7. Alert Center</strong>
-    </td>
-    <td align="center" width="50%">
-      <img src="screenshots/incident.jpeg" alt="Incident Workflow" width="100%" />
-      <br />
-      <strong>8. Incident Workflow</strong>
+      <strong>Analytics</strong>
     </td>
   </tr>
   <tr>
     <td align="center" width="50%">
-      <img src="screenshots/sensors.jpeg" alt="IoT Sensor Network" width="100%" />
+      <img src="screenshots/sensors.jpeg" alt="Sensors" width="100%" />
       <br />
-      <strong>9. IoT Sensor Network</strong>
+      <strong>Sensors</strong>
     </td>
     <td align="center" width="50%">
-      <img src="screenshots/history.png" alt="Usage History" width="100%" />
+      <img src="screenshots/workspace.jpeg" alt="Workspace" width="100%" />
       <br />
-      <strong>10. Usage History</strong>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="50%">
-      <img src="screenshots/Analytics.jpeg" alt="Analytics and Insights" width="100%" />
-      <br />
-      <strong>11. Analytics and Insights</strong>
-    </td>
-    <td align="center" width="50%">
-      <img src="screenshots/impact.jpeg" alt="Impact Summary" width="100%" />
-      <br />
-      <strong>12. Impact Summary</strong>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="50%">
-      <img src="screenshots/Reports.jpeg" alt="Sustainability Reports" width="100%" />
-      <br />
-      <strong>13. Sustainability Reports</strong>
-    </td>
-    <td align="center" width="50%">
-      <img src="screenshots/ai-chat.jpeg" alt="AI Assistant" width="100%" />
-      <br />
-      <strong>14. AI Assistant</strong>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="50%">
-      <img src="screenshots/workspace.jpeg" alt="Workspace Console" width="100%" />
-      <br />
-      <strong>15. Workspace Console</strong>
-    </td>
-    <td align="center" width="50%">
-      <img src="screenshots/profile.jpeg" alt="Profile Overview" width="100%" />
-      <br />
-      <strong>16. Profile Overview</strong>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="50%">
-      <img src="screenshots/settings.jpeg" alt="Account Settings" width="100%" />
-      <br />
-      <strong>17. Account Settings</strong>
-    </td>
-    <td align="center" width="50%">
+      <strong>Workspace</strong>
     </td>
   </tr>
 </table>
+
+For the full product walkthrough gallery, see the `screenshots/` folder.
 
 ## Local Setup
 
@@ -490,7 +389,7 @@ The gallery below follows a product walkthrough from onboarding to operational a
 
 ```powershell
 git clone <your-repo-url>
-cd "SustainOS Ai"
+cd SustaionOS-open-source-sustainability-monitoring-action-app
 
 cd server
 npm install
@@ -512,36 +411,28 @@ Copy these files and fill values:
 - `Client/.env.example`
 - `ml_service/.env.example`
 
-Recommended local values:
+Minimum local values to check first:
 
-```env
-# server/.env
-NODE_ENV=development
-MONGO_URI=your_mongodb_connection_string
-PORT=5000
-JWT_SECRET=your_jwt_secret
-CLIENT_ORIGIN=http://localhost:5173
-AI_PROVIDER=ollama
-OLLAMA_URL=http://localhost:11434/api/chat
-OLLAMA_MODEL=llama3.2:1b
-ML_SERVICE_URL=http://localhost:8000
-```
+- `server/.env`: `MONGO_URI`, `JWT_SECRET`, `CLIENT_ORIGIN`, `AI_PROVIDER`, `ML_SERVICE_URL`
+- `Client/.env`: `VITE_API_URL`, `VITE_SOCKET_URL`
+- `ml_service/.env`: `HOST`, `PORT`
 
-```env
-# Client/.env
-VITE_API_URL=http://localhost:5000
-VITE_SOCKET_URL=http://localhost:5000
-```
+Recommended local defaults:
 
-```env
-# ml_service/.env
-HOST=0.0.0.0
-PORT=8000
-```
+- `CLIENT_ORIGIN=http://localhost:5173`
+- `VITE_API_URL=http://localhost:5000`
+- `VITE_SOCKET_URL=http://localhost:5000`
+- `ML_SERVICE_URL=http://localhost:8000`
 
 ### 3. Start the stack
 
-Start all services manually:
+Fastest local start:
+
+```powershell
+.\start-dev.ps1
+```
+
+Manual start:
 
 ```powershell
 python ml_service/server.py
@@ -557,12 +448,6 @@ cd Client
 npm run dev
 ```
 
-Or use the helper:
-
-```powershell
-.\start-dev.ps1
-```
-
 ### 4. Optional local AI mode
 
 ```powershell
@@ -570,7 +455,7 @@ ollama pull llama3.2:1b
 ollama serve
 ```
 
-If you do not want external providers during hackathon judging, keep:
+If you do not want external providers during judging, keep:
 
 - `OPENAI_API_KEY=` empty
 - `GEMINI_API_KEY=` empty
@@ -578,18 +463,7 @@ If you do not want external providers during hackathon judging, keep:
 
 ## Deployment
 
-This repository includes a Render blueprint in `render.yaml`.
-
-Services:
-
-- `sustainos-api`
-- `sustainos-ml`
-
-Current Render dashboard links:
-
-- Frontend dashboard: `https://dashboard.render.com/static/srv-d71tiqm3jp1c739ijndg`
-- Backend dashboard: `https://dashboard.render.com/web/srv-d71td6v5gffc73839o7g`
-- ML dashboard: `https://dashboard.render.com/web/srv-d71u7nlm5p6s73a1od60`
+This repository includes a Render blueprint in `render.yaml` for the backend and ML services.
 
 Recommended production layout:
 
@@ -599,7 +473,9 @@ Recommended production layout:
 - Database: MongoDB Atlas
 - Optional LLM: self-hosted Ollama or provider-based integration
 
-See `DEPLOYMENT.md` for deployment detail.
+For public judge links, update [JUDGE_GUIDE.md](JUDGE_GUIDE.md).
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for deployment detail.
 
 ## Verification
 
@@ -622,6 +498,10 @@ npm run build
 ```powershell
 cd server
 npm test
+```
+
+```powershell
+.\hackathon-smoke-test.ps1 -FrontendUrl http://127.0.0.1:4173 -BackendUrl http://127.0.0.1:5000 -MlUrl http://127.0.0.1:8000
 ```
 
 ## Real-World Readiness

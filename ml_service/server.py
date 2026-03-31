@@ -342,48 +342,51 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             return self._json(400, {"error": "invalid json"})
 
-        if path == "/predict":
-            prediction = predict_payload(payload.get("records") or [])
-            return self._json(200, {"prediction": prediction})
+        try:
+            if path == "/predict":
+                prediction = predict_payload(payload.get("records") or [])
+                return self._json(200, {"prediction": prediction})
 
-        if path == "/anomaly":
-            result = anomaly_payload(payload.get("water"), payload.get("energy"), payload.get("history") or [])
-            return self._json(200, result)
+            if path == "/anomaly":
+                result = anomaly_payload(payload.get("water"), payload.get("energy"), payload.get("history") or [])
+                return self._json(200, result)
 
-        if path == "/insights":
-            result = insights_payload(payload.get("records") or [])
-            return self._json(200, result)
+            if path == "/insights":
+                result = insights_payload(payload.get("records") or [])
+                return self._json(200, result)
 
-        if path == "/simulate":
-            result = simulate_payload(
-                payload.get("records") or [],
-                energy_reduction_pct=safe_num(payload.get("energyReductionPct", 10)),
-                water_reduction_pct=safe_num(payload.get("waterReductionPct", 10)),
-                horizon_days=int(payload.get("horizonDays", 30) or 30),
-            )
-            return self._json(200, result)
+            if path == "/simulate":
+                result = simulate_payload(
+                    payload.get("records") or [],
+                    energy_reduction_pct=safe_num(payload.get("energyReductionPct", 10)),
+                    water_reduction_pct=safe_num(payload.get("waterReductionPct", 10)),
+                    horizon_days=int(payload.get("horizonDays", 30) or 30),
+                )
+                return self._json(200, result)
 
-        if path == "/train":
-            result = MODEL.train(payload.get("records") or [])
-            return self._json(200, {"status": "trained", "model": result, "trainingHistory": result.get("trainingHistory", [])})
+            if path == "/train":
+                result = MODEL.train(payload.get("records") or [])
+                return self._json(200, {"status": "trained", "model": result, "trainingHistory": result.get("trainingHistory", [])})
 
-        if path == "/recommend":
-            result = insights_payload(payload.get("records") or [])
-            return self._json(
-                200,
-                {
-                    "nextBestAction": result.get("nextBestAction"),
-                    "rankedActions": result.get("rankedActions", []),
-                    "confidence": result.get("confidence"),
-                    "model": result.get("model"),
-                },
-            )
+            if path == "/recommend":
+                result = insights_payload(payload.get("records") or [])
+                return self._json(
+                    200,
+                    {
+                        "nextBestAction": result.get("nextBestAction"),
+                        "rankedActions": result.get("rankedActions", []),
+                        "confidence": result.get("confidence"),
+                        "model": result.get("model"),
+                    },
+                )
 
-        if path == "/profile-parse":
-            result = parse_profile_payload(payload.get("text") or "", payload.get("draft") or {})
-            return self._json(200, {"status": "success", **result, "model": {"name": "sustainos-profile-voice", "version": "1.0.0"}})
+            if path == "/profile-parse":
+                result = parse_profile_payload(payload.get("text") or "", payload.get("draft") or {})
+                return self._json(200, {"status": "success", **result, "model": {"name": "sustainos-profile-voice", "version": "1.0.0"}})
 
-        return self._json(404, {"error": "not found"})
+            return self._json(404, {"error": "not found"})
+        except Exception as exc:
+            return self._json(500, {"error": "internal error", "detail": str(exc)})
 
 
 if __name__ == "__main__":

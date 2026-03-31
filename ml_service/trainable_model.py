@@ -23,12 +23,26 @@ def stddev(values):
     clean = [safe_num(value) for value in values]
     if not clean:
         return 0.0
+    peak = max(abs(value) for value in clean)
+    if peak == 0:
+        return 0.0
+    if peak > 1_000_000:
+        scaled = [value / peak for value in clean]
+        center = mean(scaled)
+        return math.sqrt(sum((value - center) ** 2 for value in scaled) / len(scaled)) * peak
     center = mean(clean)
     return math.sqrt(sum((value - center) ** 2 for value in clean) / len(clean))
 
 
 def clamp(value, low, high):
     return max(low, min(high, value))
+
+
+def forecast_cap(values, floor=25.0):
+    clean = [max(0.0, safe_num(value)) for value in values]
+    if not clean:
+        return floor
+    return max(floor, max(clean) * 3.5, mean(clean) + stddev(clean) * 8.0)
 
 
 def parse_dt(value):
@@ -700,25 +714,37 @@ class SustainOSLinearModel:
         window = history[-self.window_size :] or [dict(history[-1])]
         timestamp = parse_dt(window[-1].get("timestamp") or window[-1].get("createdAt") or window[-1].get("time")) or datetime.now(timezone.utc)
         weights = self._component_weights(len(ordered))
+        energy_cap = forecast_cap([record.get("energy") for record in ordered], 50.0)
+        water_cap = forecast_cap([record.get("water") for record in ordered], 50.0)
         path = []
 
         for step_index in range(1, max(1, steps) + 1):
             target_ts = timestamp + timedelta(hours=1)
             model_component = self._predict_window(window) if self.state.get("trained") else self._fallback(window)
-            seasonal_energy = self._temporal_baseline(history, "energy", target_ts)
-            seasonal_water = self._temporal_baseline(history, "water", target_ts)
-            momentum_energy = self._momentum_baseline(window, "energy", step_index)
-            momentum_water = self._momentum_baseline(window, "water", step_index)
+            model_energy = clamp(safe_num(model_component.get("energy")), 0.0, energy_cap)
+            model_water = clamp(safe_num(model_component.get("water")), 0.0, water_cap)
+            seasonal_energy = clamp(self._temporal_baseline(history, "energy", target_ts), 0.0, energy_cap)
+            seasonal_water = clamp(self._temporal_baseline(history, "water", target_ts), 0.0, water_cap)
+            momentum_energy = clamp(self._momentum_baseline(window, "energy", step_index), 0.0, energy_cap)
+            momentum_water = clamp(self._momentum_baseline(window, "water", step_index), 0.0, water_cap)
 
-            predicted_energy = (
-                model_component["energy"] * weights["model"]
+            predicted_energy = clamp(
+                (
+                model_energy * weights["model"]
                 + seasonal_energy * weights["seasonal"]
                 + momentum_energy * weights["momentum"]
+                ),
+                0.0,
+                energy_cap,
             )
-            predicted_water = (
-                model_component["water"] * weights["model"]
+            predicted_water = clamp(
+                (
+                model_water * weights["model"]
                 + seasonal_water * weights["seasonal"]
                 + momentum_water * weights["momentum"]
+                ),
+                0.0,
+                water_cap,
             )
             off_hours_ratio = sum(1 for record in window if is_off_hours(record.get("timestamp"))) / max(1, len(window))
             predicted_score = self._score_from_usage(predicted_energy, predicted_water, off_hours_ratio)
@@ -726,12 +752,12 @@ class SustainOSLinearModel:
             energy_spread = max(
                 1.0,
                 safe_num((self.state.get("residualStd") or {}).get("energy")),
-                stddev([model_component["energy"], seasonal_energy, momentum_energy]),
+                stddev([model_energy, seasonal_energy, momentum_energy]),
             )
             water_spread = max(
                 1.0,
                 safe_num((self.state.get("residualStd") or {}).get("water")),
-                stddev([model_component["water"], seasonal_water, momentum_water]),
+                stddev([model_water, seasonal_water, momentum_water]),
             )
             energy_ci = 1.96 * energy_spread
             water_ci = 1.96 * water_spread
@@ -750,10 +776,10 @@ class SustainOSLinearModel:
                     "high": round(predicted_water + water_ci),
                 },
                 "components": {
-                    "modelEnergy": round(model_component["energy"]),
+                    "modelEnergy": round(model_energy),
                     "seasonalEnergy": round(seasonal_energy),
                     "momentumEnergy": round(momentum_energy),
-                    "modelWater": round(model_component["water"]),
+                    "modelWater": round(model_water),
                     "seasonalWater": round(seasonal_water),
                     "momentumWater": round(momentum_water),
                 },
