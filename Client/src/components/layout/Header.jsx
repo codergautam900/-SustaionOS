@@ -6,6 +6,10 @@ import { AuthContext } from "../../context/auth-context";
 import { getAuthToken } from "../../utils/auth";
 import { apiUrl } from "../../utils/api";
 import socket from "../../utils/socket";
+
+// import notification sounds for alert user time to time
+// import from utils folder
+
 import {
   isAlertSoundEnabled,
   playAlertSound,
@@ -13,6 +17,7 @@ import {
   setAlertSoundEnabled,
 } from "../../utils/notificationSound";
 
+// Create Routes names with path
 const routeLabels = {
   "/": "Dashboard Overview",
   "/analytics": "Analytics",
@@ -40,9 +45,13 @@ const Header = ({ setIsOpen }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(() => isAlertSoundEnabled());
-
+// use for take reference
+  
   const headerRef = useRef(null);
-
+  
+// Effect: Handles closing of dropdown menus (user menu & notifications)
+// when user clicks outside the header area.
+// Adds a global "mousedown" event listener and removes it on cleanup.
   useEffect(() => {
     const onPointerDown = (event) => {
       if (!headerRef.current) return;
@@ -55,10 +64,13 @@ const Header = ({ setIsOpen }) => {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, []);
 
+  // handle audio when client will changes and add new data
+  
   useEffect(() => {
     primeAlertAudio();
   }, []);
 
+  // handle token and fetch notification with limitation
   useEffect(() => {
     const loadNotifications = async () => {
       const token = getAuthToken();
@@ -82,7 +94,8 @@ const Header = ({ setIsOpen }) => {
     loadNotifications();
 
     if (!socket.connected) socket.connect();
-
+    // it provide new notifications and increase count 
+    // it will be inform time to time
     const onNewNotification = (notification) => {
       if (!notification?._id) return;
       if (String(notification.userId || "") !== String(user?._id || "")) return;
@@ -95,7 +108,7 @@ const Header = ({ setIsOpen }) => {
         message: notification.message,
       });
     };
-
+  // socket used for connect live or live data rendering notification it will be take user ID
     socket.on("newNotification", onNewNotification);
 
     return () => {
@@ -103,12 +116,13 @@ const Header = ({ setIsOpen }) => {
     };
   }, [user?._id]);
 
+  // handle alert sound
   const toggleAlertSound = () => {
     const nextValue = !soundEnabled;
     setSoundEnabled(nextValue);
     setAlertSoundEnabled(nextValue);
   };
-
+// mark notification if notification is read it will be take ID
   const markNotificationRead = async (id) => {
     try {
       const token = getAuthToken();
@@ -118,7 +132,7 @@ const Header = ({ setIsOpen }) => {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
       });
-
+  // set Notification count
       setNotifications((prev) => prev.map((item) => (item._id === id ? { ...item, read: true } : item)));
       setUnreadCount((count) => Math.max(0, count - 1));
     } catch (err) {
@@ -135,6 +149,7 @@ const Header = ({ setIsOpen }) => {
     >
       <div className="mx-auto flex min-h-[4.5rem] w-full max-w-[1600px] flex-wrap items-center justify-between gap-3 px-3 py-3 sm:px-4 md:px-6">
         <div className="flex min-w-0 items-center gap-3">
+          {/* Create button for handle menu bar*/}
           <button
             type="button"
             onClick={() => setIsOpen(true)}
@@ -159,7 +174,7 @@ const Header = ({ setIsOpen }) => {
             </p>
           </div>
         </div>
-
+        {/* Add auto refreshing button mode */}
         <div className="flex items-center justify-end gap-2 md:gap-3">
           <div className="hidden items-center gap-2 rounded-full border border-emerald-500/15 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-300 lg:inline-flex">
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
@@ -184,7 +199,7 @@ const Header = ({ setIsOpen }) => {
                 </span>
               )}
             </button>
-
+            {/* Alert menu */}
             {alertMenuOpen && (
               <div className="fixed left-2 right-2 top-[4.75rem] z-50 max-h-[calc(100dvh-6rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-950 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-3 sm:w-[min(20rem,calc(100vw-1rem))]">
                 <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
@@ -192,6 +207,7 @@ const Header = ({ setIsOpen }) => {
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{unreadCount} unread</p>
                   </div>
+                  {/* Add button for navigate notification page */}
                   <button
                     type="button"
                     onClick={() => {
