@@ -282,11 +282,12 @@ Put the final public app links in [JUDGE_GUIDE.md](JUDGE_GUIDE.md). Do not share
 
 ### Public Demo Links
 
-Replace these placeholders before submission:
+Current deployed links:
 
-- `Live App`: `PASTE_PUBLIC_FRONTEND_URL_HERE`
-- `Live API Health`: `PASTE_PUBLIC_BACKEND_URL_HERE/api/health/ready`
-- `Live ML Health`: `PASTE_PUBLIC_ML_URL_HERE/health`
+- `Live App`: `https://sustaionos-open-source-sustainability-ygcz.onrender.com`
+- `Live API Base`: `https://sustaionos-open-source-sustainability-ip3w.onrender.com`
+- `Live API Health`: `https://sustaionos-open-source-sustainability-ip3w.onrender.com/api/health`
+- `Live ML Health`: `https://sustaionos-open-source-sustainability-do10.onrender.com/health`
 - `Demo Video`: `PASTE_YOUR_DEMO_VIDEO_LINK_HERE`
 
 ### Best Demo Story
@@ -333,48 +334,115 @@ The seeded demo validates:
 
 ## Screenshots
 
-The gallery below follows the product from monitoring to action.
+The gallery below follows a product walkthrough from onboarding to operational action, reporting, and workspace management. Every image is sourced from the current `screenshots/` folder.
 
 <table>
   <tr>
     <td align="center" width="50%">
-      <img src="screenshots/Dashboard.jpeg" alt="Dashboard" width="100%" />
+      <img src="screenshots/Register.jpeg" alt="Register Account" width="100%" />
       <br />
-      <strong>Dashboard</strong>
+      <strong>1. Register Account</strong>
     </td>
     <td align="center" width="50%">
-      <img src="screenshots/Mission-control.jpeg" alt="Mission Control" width="100%" />
+      <img src="screenshots/login.jpeg" alt="Login" width="100%" />
       <br />
-      <strong>Mission Control</strong>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="50%">
-      <img src="screenshots/Alerts.png" alt="Alerts" width="100%" />
-      <br />
-      <strong>Alerts</strong>
-    </td>
-    <td align="center" width="50%">
-      <img src="screenshots/Analytics.jpeg" alt="Analytics" width="100%" />
-      <br />
-      <strong>Analytics</strong>
+      <strong>2. Login</strong>
     </td>
   </tr>
   <tr>
     <td align="center" width="50%">
-      <img src="screenshots/sensors.jpeg" alt="Sensors" width="100%" />
+      <img src="screenshots/Dashboard.jpeg" alt="Dashboard Overview" width="100%" />
       <br />
-      <strong>Sensors</strong>
+      <strong>3. Dashboard Overview</strong>
     </td>
     <td align="center" width="50%">
-      <img src="screenshots/workspace.jpeg" alt="Workspace" width="100%" />
+      <img src="screenshots/Locations.jpeg" alt="Location Overview" width="100%" />
       <br />
-      <strong>Workspace</strong>
+      <strong>4. Location Overview</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/Buildings.jpeg" alt="Building Comparison" width="100%" />
+      <br />
+      <strong>5. Building Comparison</strong>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/Mission-control.jpeg" alt="Mission Control Recommendations" width="100%" />
+      <br />
+      <strong>6. Mission Control Recommendations</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/Alerts.png" alt="Alert Center" width="100%" />
+      <br />
+      <strong>7. Alert Center</strong>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/incident.jpeg" alt="Incident Workflow" width="100%" />
+      <br />
+      <strong>8. Incident Workflow</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/sensors.jpeg" alt="IoT Sensor Network" width="100%" />
+      <br />
+      <strong>9. IoT Sensor Network</strong>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/history.png" alt="Usage History" width="100%" />
+      <br />
+      <strong>10. Usage History</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/Analytics.jpeg" alt="Analytics and Insights" width="100%" />
+      <br />
+      <strong>11. Analytics and Insights</strong>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/impact.jpeg" alt="Impact Summary" width="100%" />
+      <br />
+      <strong>12. Impact Summary</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/Reports.jpeg" alt="Sustainability Reports" width="100%" />
+      <br />
+      <strong>13. Sustainability Reports</strong>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/ai-chat.jpeg" alt="AI Assistant" width="100%" />
+      <br />
+      <strong>14. AI Assistant</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/workspace.jpeg" alt="Workspace Console" width="100%" />
+      <br />
+      <strong>15. Workspace Console</strong>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/profile.jpeg" alt="Profile Overview" width="100%" />
+      <br />
+      <strong>16. Profile Overview</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/settings.jpeg" alt="Account Settings" width="100%" />
+      <br />
+      <strong>17. Account Settings</strong>
+    </td>
+    <td align="center" width="50%">
     </td>
   </tr>
 </table>
-
-For the full product walkthrough gallery, see the `screenshots/` folder.
 
 ## Local Setup
 

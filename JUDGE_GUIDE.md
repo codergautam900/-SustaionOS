@@ -12,11 +12,12 @@ Those are maintainer pages, not the actual product.
 
 ## Demo Access Links
 
-Replace these placeholders before sharing:
+Use these deployed links:
 
-- `Live App`: `PASTE_PUBLIC_FRONTEND_URL_HERE`
-- `Live API Health`: `PASTE_PUBLIC_BACKEND_URL_HERE/api/health/ready`
-- `Live ML Health`: `PASTE_PUBLIC_ML_URL_HERE/health`
+- `Live App`: `https://sustaionos-open-source-sustainability-ygcz.onrender.com`
+- `Live API Base`: `https://sustaionos-open-source-sustainability-ip3w.onrender.com`
+- `Live API Health`: `https://sustaionos-open-source-sustainability-ip3w.onrender.com/api/health`
+- `Live ML Health`: `https://sustaionos-open-source-sustainability-do10.onrender.com/health`
 - `Demo Video`: `PASTE_YOUR_DEMO_VIDEO_LINK_HERE`
 
 ## Fastest Judge Flow
@@ -84,8 +85,9 @@ Replace this before sharing:
 
 If you want judges to verify service health directly:
 
-- Backend ready check: `PASTE_PUBLIC_BACKEND_URL_HERE/api/health/ready`
-- ML health check: `PASTE_PUBLIC_ML_URL_HERE/health`
+- Backend health check: `https://sustaionos-open-source-sustainability-ip3w.onrender.com/api/health`
+- Backend ready check: `https://sustaionos-open-source-sustainability-ip3w.onrender.com/api/health/ready`
+- ML health check: `https://sustaionos-open-source-sustainability-do10.onrender.com/health`
 
 Expected result:
 
