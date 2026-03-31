@@ -288,15 +288,18 @@ Current deployed links:
 - `Live API Base`: `https://sustaionos-open-source-sustainability-ip3w.onrender.com`
 - `Live API Health`: `https://sustaionos-open-source-sustainability-ip3w.onrender.com/api/health`
 - `Live ML Health`: `https://sustaionos-open-source-sustainability-do10.onrender.com/health`
-- `Demo Video`: [`demo.mp4`](demo.mp4)
+- `Demo Video`: [`Open Demo Video`](https://github.com/gauravgautam2003/SustaionOS-open-source-sustainability-monitoring-action-app/blob/main/demo.mp4?raw=1)
+- `Local Demo File`: [`demo.mp4`](demo.mp4)
 
 ### Demo Video
 
-Click the preview below to open the recorded demo walkthrough.
+GitHub README does not play repository videos inline. Use the preview below to open the raw MP4 in your browser.
 
-[![Watch the SustainOS AI demo](screenshots/Dashboard.jpeg)](demo.mp4)
+[![Watch the SustainOS AI demo](screenshots/Dashboard.jpeg)](https://github.com/gauravgautam2003/SustaionOS-open-source-sustainability-monitoring-action-app/blob/main/demo.mp4?raw=1)
 
-Direct video file: [demo.mp4](demo.mp4)
+Direct video file: [Open demo.mp4](https://github.com/gauravgautam2003/SustaionOS-open-source-sustainability-monitoring-action-app/blob/main/demo.mp4?raw=1)
+
+Local file for IDE preview: [demo.mp4](demo.mp4)
 
 ### Best Demo Story
 
