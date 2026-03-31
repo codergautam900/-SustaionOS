@@ -10,14 +10,33 @@ SustainOS AI is a full-stack sustainability operations platform for smart buildi
 
 For judges and reviewers using the deployed app, start with [JUDGE_GUIDE.md](JUDGE_GUIDE.md).
 
-  
-## Tagline
+## Quick Links
 
-From raw building telemetry to operational decisions.
+- Judges: [JUDGE_GUIDE.md](JUDGE_GUIDE.md)
+- Product screenshots: [Screenshots](#screenshots)
+- Demo and validation: [Demo](#demo)
+- Local setup: [Local Setup](#local-setup)
+- Deployment notes: [Deployment](#deployment)
+
+## Judge Snapshot
+
+| Topic | Summary |
+| --- | --- |
+| Problem | Utility waste is usually discovered late because telemetry, alerts, and action planning live in separate tools. |
+| Product | SustainOS AI is an operational sustainability platform, not just a dashboard. |
+| Users | Facilities teams, campus operators, smart-building admins, and sustainability leads. |
+| Core differentiator | It turns live telemetry into ranked hotspots, alerts, AI guidance, and an execution-ready Mission Control workflow. |
+| Technical proof | Full-stack web app, ML microservice, real SaaS workspace layer, smoke checks, and seeded end-to-end demo scripts. |
+
+## What SustainOS AI Does
+
+SustainOS AI helps organizations detect utility waste, explain risk, and prioritize action across buildings, campuses, and infrastructure portfolios.
+
+Instead of only visualizing charts, the platform connects telemetry ingestion, anomaly detection, alerts, building ranking, ML forecasting, AI explanations, and SaaS workspace controls in one product.
 
 ## Problem
 
-Water and energy waste usually stays hidden because operations teams deal with scattered dashboards, delayed reporting, and reactive maintenance. In campuses, hostels, hospitals, offices, and public buildings, this leads to:
+Water and energy waste usually stays hidden because operations teams work across scattered dashboards, delayed reports, and reactive maintenance processes. In campuses, hostels, hospitals, offices, and public buildings, this leads to:
 
 - unnoticed leakage and abnormal utility spikes
 - delayed incident response
@@ -25,11 +44,14 @@ Water and energy waste usually stays hidden because operations teams deal with s
 - weak accountability across teams
 - hard-to-explain sustainability data for decision makers
 
-## Solution
+## Why This Project Stands Out
 
-SustainOS AI combines telemetry ingestion, analytics, AI guidance, ML forecasting, and SaaS workspace controls into one operational product. Teams can ingest data from users, devices, gateways, or webhooks, detect anomalies, prioritize hotspots, assign action, and track workspace-level activity from a single system.
+- It is execution-focused. Mission Control ranks buildings by risk and savings opportunity instead of stopping at passive analytics.
+- It has real product depth. The repo includes auth, roles, invites, API keys, audit logs, and workspace management, not just a single dashboard page.
+- It supports multiple data-entry paths. Teams can work with manual telemetry, sensors, gateways, and webhook-style ingest.
+- It is verifiable. The project includes health checks, test coverage, and a seeded end-to-end demo script that exercises the main product journey.
 
-## What The Product Does
+## Core Capabilities
 
 - Ingests water and energy telemetry through manual entry, sensors, gateways, and webhook-style APIs
 - Detects abnormal spikes, likely leakage, peak-load drift, and sensor reliability issues
@@ -41,11 +63,25 @@ SustainOS AI combines telemetry ingestion, analytics, AI guidance, ML forecastin
 - Tracks sensors, low-battery devices, weak signal quality, and telemetry health
 - Supports workspace-level SaaS operations with roles, invites, plans, API keys, and audit logs
 
+## Recommended Judge Flow
+
+If a judge wants the fastest product understanding path, this is the best sequence:
+
+1. Dashboard
+2. Mission Control / Recommendations
+3. Alerts
+4. Sensors
+5. Workspace
+6. Analytics
+7. AI Assistant
+
+This flow is expanded in [JUDGE_GUIDE.md](JUDGE_GUIDE.md).
+
 ## Why It Matters
 
 SustainOS AI is designed for real-world operators, not just analysts.
 
-Primary use cases:
+Best-fit environments:
 
 - smart campuses and universities
 - hostels and residential blocks
@@ -56,7 +92,7 @@ Primary use cases:
 
 ## Hackathon Pitch
 
-SustainOS AI is a sustainability operations SaaS platform that helps organizations detect utility waste, prioritize incidents, and act faster using AI and real-time telemetry. Instead of only showing dashboards, it tells teams what is wrong, where it is happening, and what to do next.
+SustainOS AI is a sustainability operations SaaS platform that helps organizations detect utility waste, prioritize incidents, and act faster using AI and real-time telemetry. Instead of only showing dashboards, it tells teams what is wrong, where it is happening, why it matters, and what to do next.
 
 ## Product Highlights
 
@@ -259,13 +295,19 @@ SustainOS Ai/
 
 ## Demo
 
+### Judge Note
+
+Before submission, add the public deployed URLs in [JUDGE_GUIDE.md](JUDGE_GUIDE.md). The links below are current maintainer-facing Render dashboard links, not judge-facing product URLs.
+
 ### Live Deployment
 
-Current Render service dashboard links:
+Current available service links:
 
-- `Frontend Service (Render Dashboard)`: `https://dashboard.render.com/static/srv-d71tiqm3jp1c739ijndg`
-- `Backend Service (Render Dashboard)`: `https://dashboard.render.com/web/srv-d71td6v5gffc73839o7g`
-- `ML Service (Render Dashboard)`: `https://dashboard.render.com/web/srv-d71u7nlm5p6s73a1od60`
+| Service | Current link type | Link |
+| --- | --- | --- |
+| Frontend | Render dashboard | `https://dashboard.render.com/static/srv-d71tiqm3jp1c739ijndg` |
+| Backend | Render dashboard | `https://dashboard.render.com/web/srv-d71td6v5gffc73839o7g` |
+| ML Service | Render dashboard | `https://dashboard.render.com/web/srv-d71u7nlm5p6s73a1od60` |
 
 Note:
 
@@ -279,6 +321,8 @@ Add your final demo link here:
 
 - `Demo Video`: `PASTE_YOUR_DEMO_VIDEO_LINK_HERE`
 
+### Best Demo Story
+
 Suggested demo flow:
 
 1. Start with the dashboard and problem statement
@@ -290,7 +334,7 @@ Suggested demo flow:
 
 ### Built-In Demo Validation
 
-This repo includes two scripts to help with judging and demo prep:
+This repo includes two scripts that make the project easier to validate during demo prep and judging:
 
 - `hackathon-smoke-test.ps1`
   Verifies frontend, backend, and ML health endpoints.
@@ -323,22 +367,115 @@ What the seeded demo validates:
 
 ## Screenshots
 
-Add your screenshots inside the `screenshots/` folder using these names.
+The gallery below follows a product walkthrough from onboarding to operational action, reporting, and workspace management. Every image is sourced from the current `screenshots/` folder.
 
-| Section | Suggested filename | What to capture |
-| --- | --- | --- |
-| Landing or Login | `screenshots/01-login-or-landing.png` | clean hero or auth entry screen |
-| Dashboard | `screenshots/02-dashboard-overview.png` | KPI cards, latest telemetry, live stats |
-| Analytics | `screenshots/03-analytics-overview.png` | charts, score, executive insights |
-| Mission Control | `screenshots/04-mission-control.png` | hotspot ranking, roadmap, savings |
-| Alerts | `screenshots/05-alerts-queue.png` | open alerts, severity, actions |
-| Incidents | `screenshots/06-incidents-workflow.png` | status changes and operational queue |
-| Sensors | `screenshots/07-sensors-health.png` | sensor list, health, low battery or weak signal |
-| Workspace | `screenshots/08-workspace-console.png` | roles, plan, API keys, audit, invites |
-| AI Copilot | `screenshots/09-ai-copilot.png` | AI answer with operational reasoning |
-| Reports | `screenshots/10-reports-export.png` | report generation or downloadable summary |
-| Mobile View | `screenshots/11-mobile-dashboard.png` | responsive dashboard or Mission Control |
-| End-to-End Demo | `screenshots/12-seeded-demo-proof.png` | proof of seeded telemetry and alerts |
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/Register.jpeg" alt="Register Account" width="100%" />
+      <br />
+      <strong>1. Register Account</strong>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/login.jpeg" alt="Login" width="100%" />
+      <br />
+      <strong>2. Login</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/Dashboard.jpeg" alt="Dashboard Overview" width="100%" />
+      <br />
+      <strong>3. Dashboard Overview</strong>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/Locations.jpeg" alt="Location Overview" width="100%" />
+      <br />
+      <strong>4. Location Overview</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/Buildings.jpeg" alt="Building Comparison" width="100%" />
+      <br />
+      <strong>5. Building Comparison</strong>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/Mission-control.jpeg" alt="Mission Control Recommendations" width="100%" />
+      <br />
+      <strong>6. Mission Control Recommendations</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/Alerts.png" alt="Alert Center" width="100%" />
+      <br />
+      <strong>7. Alert Center</strong>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/incident.jpeg" alt="Incident Workflow" width="100%" />
+      <br />
+      <strong>8. Incident Workflow</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/sensors.jpeg" alt="IoT Sensor Network" width="100%" />
+      <br />
+      <strong>9. IoT Sensor Network</strong>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/history.png" alt="Usage History" width="100%" />
+      <br />
+      <strong>10. Usage History</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/Analytics.jpeg" alt="Analytics and Insights" width="100%" />
+      <br />
+      <strong>11. Analytics and Insights</strong>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/impact.jpeg" alt="Impact Summary" width="100%" />
+      <br />
+      <strong>12. Impact Summary</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/Reports.jpeg" alt="Sustainability Reports" width="100%" />
+      <br />
+      <strong>13. Sustainability Reports</strong>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/ai-chat.jpeg" alt="AI Assistant" width="100%" />
+      <br />
+      <strong>14. AI Assistant</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/workspace.jpeg" alt="Workspace Console" width="100%" />
+      <br />
+      <strong>15. Workspace Console</strong>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/profile.jpeg" alt="Profile Overview" width="100%" />
+      <br />
+      <strong>16. Profile Overview</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/settings.jpeg" alt="Account Settings" width="100%" />
+      <br />
+      <strong>17. Account Settings</strong>
+    </td>
+    <td align="center" width="50%">
+    </td>
+  </tr>
+</table>
 
 ## Local Setup
 
