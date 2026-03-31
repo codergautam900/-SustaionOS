@@ -1,5 +1,8 @@
 import React from "react";
 
+// Create Skeleton for our SustainOS website 
+// render CSS Classes from client side
+
 const Skeleton = ({ className }) => {
   return (
     <div
