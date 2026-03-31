@@ -13,7 +13,7 @@ SPLIT_RE = re.compile(r"(?:,|;|/|\||\n|\band\b|\baur\b|\bthen\b|\bphir\b|\bfir\b
 
 
 def normalize_text(value: object) -> str:
-      """
+    """
     Normalize raw input text:
     - Remove newlines
     - Replace fancy quotes with standard ones
@@ -32,11 +32,9 @@ def normalize_text(value: object) -> str:
 
 
 def compact_text(value: object) -> str:
-    
     """
     Normalize text and remove extra spaces.
     """
-    
     return re.sub(r"\s+", " ", normalize_text(value)).strip()
 
 
@@ -48,12 +46,10 @@ def tokenise(value: object) -> list[str]:
     return [token for token in tokens if token]
 
 def trim_after_fillers(text: str, fillers: set[str]) -> str:
-    
     """
     Stop extracting text once filler words are encountered.
     Example: "Rahul hai" → "Rahul"
     """
-    
     tokens = tokenise(text)
     if not tokens:
         return ""
@@ -66,14 +62,12 @@ def trim_after_fillers(text: str, fillers: set[str]) -> str:
 
 
 def clean_candidate(text: str, fillers: set[str]) -> str:
-    
-      """
+    """
     Clean extracted candidate:
     - Remove prefixes
     - Remove fillers
     - Remove trailing punctuation
     """
-    
     candidate = compact_text(text)
     if not candidate:
         return ""
@@ -84,49 +78,43 @@ def clean_candidate(text: str, fillers: set[str]) -> str:
 
 
 class NaiveBayesTextModel:
-
-       """
+    """
     Simple Naive Bayes classifier for text classification.
     Used to classify input into:
     - name
     - building
     - other
     """
-    
+
     def __init__(self) -> None:
-         # Count of each class
-        
+        # Count of each class.
         self.class_counts: Counter[str] = Counter()
 
-        # Feature counts per class
+        # Feature counts per class.
         self.feature_counts: dict[str, Counter[str]] = defaultdict(Counter)
 
-           # Total features per class
+        # Total features seen per class.
         self.feature_totals: Counter[str] = Counter()
 
-         # Unique vocabulary
+        # Unique vocabulary across all features.
         self.vocabulary: set[str] = set()
         self.trained = False
 
     def _features(self, text: str) -> list[str]:
-
-          """
+        """
         Extract features:
         - Unigrams (single words)
         - Bigrams (word pairs)
         """
-        
         tokens = tokenise(text)
         feats = [f"tok:{token}" for token in tokens]
         feats.extend(f"bi:{a}_{b}" for a, b in zip(tokens, tokens[1:]))
         return feats
 
     def train(self, samples: list[tuple[str, str]]) -> None:
-
         """
         Train model with labeled samples.
         """
-        
         self.class_counts.clear()
         self.feature_counts.clear()
         self.feature_totals.clear()
@@ -143,20 +131,17 @@ class NaiveBayesTextModel:
         self.trained = bool(self.class_counts)
 
     def predict(self, text: str) -> tuple[str, float, dict[str, float]]:
-
-          """
+        """
         Predict label for given text.
         Returns:
         - predicted label
         - confidence
         - probability distribution
         """
-        
         if not self.trained:
             return "other", 0.0, {"other": 1.0}
 
-       # Likelihood
-
+        # Accumulate class likelihoods in log space for numerical stability.
         features = self._features(text)
         labels = list(self.class_counts.keys())
         vocab_size = max(1, len(self.vocabulary))
@@ -181,8 +166,7 @@ class NaiveBayesTextModel:
 
 
 class ProfileVoiceModel:
-
-       """
+    """
     Main AI model to extract:
     - User name
     - Building name
@@ -326,19 +310,12 @@ class ProfileVoiceModel:
     ]
 
     def __init__(self) -> None:
-
-         # Initialize ML model
-        
+        # Initialize and train the lightweight classifier once.
         self.model = NaiveBayesTextModel()
-        
-        # Training data
         self.samples = self._build_samples()
-
-        # Train model
         self.model.train(self.samples)
 
     def _build_samples(self) -> list[tuple[str, str]]:
-
         """
         Create training dataset for:
         - name
@@ -416,25 +393,14 @@ class ProfileVoiceModel:
             for template in building_templates:
                 samples.append((template.format(value=value), "building"))
         for text in noise:
-
-            
-        # Noise data
+            # Noise data keeps action words from being misclassified.
             samples.append((text, "other"))
         return samples
 
     def _classify_segment(self, segment: str) -> tuple[str, float, dict[str, float]]:
-
         """
-        Main function:
-        Extract name & building from user input.
-
-        Returns:
-        - draft (name, building)
-        - confidence score
-        - segments analysis
-        - missing fields (needs)
-        """ 
-        
+        Classify a segment and return label, confidence, and probabilities.
+        """
         label, confidence, probs = self.model.predict(segment)
         return label, confidence, probs
 
@@ -617,7 +583,6 @@ class ProfileVoiceModel:
                     name_value = name_candidate
                 elif re.search(r"\b(mera naam|my name is|call me|i am|i'm|im|naam|name|मेरा नाम|नाम|मैं|main|mujhe)\b", segment, re.IGNORECASE):
                     needs.add("name")
-         # Split into smaller segments
             if not building_value:
                 building_candidate = self._extract_after_pattern(
                     segment,
