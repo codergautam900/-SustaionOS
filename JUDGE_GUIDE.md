@@ -18,7 +18,7 @@ Use these deployed links:
 - `Live API Base`: `https://sustaionos-open-source-sustainability-ip3w.onrender.com`
 - `Live API Health`: `https://sustaionos-open-source-sustainability-ip3w.onrender.com/api/health`
 - `Live ML Health`: `https://sustaionos-open-source-sustainability-do10.onrender.com/health`
-- `Demo Video`: `PASTE_YOUR_DEMO_VIDEO_LINK_HERE`
+- `Demo Video`: `PASTE_PUBLIC_YOUTUBE_LOOM_OR_DRIVE_LINK_HERE`
 
 ## Fastest Judge Flow
 

@@ -14,6 +14,7 @@ For judges and reviewers using the deployed app, start with [JUDGE_GUIDE.md](JUD
 
 - Judges: [JUDGE_GUIDE.md](JUDGE_GUIDE.md)
 - Demo and validation: [Demo](#demo)
+- Development timeline: [TIMELINE.md](TIMELINE.md)
 - Screenshots: [Screenshots](#screenshots)
 - Local setup: [Local Setup](#local-setup)
 - Deployment notes: [Deployment](#deployment)
@@ -288,16 +289,18 @@ Current deployed links:
 - `Live API Base`: `https://sustaionos-open-source-sustainability-ip3w.onrender.com`
 - `Live API Health`: `https://sustaionos-open-source-sustainability-ip3w.onrender.com/api/health`
 - `Live ML Health`: `https://sustaionos-open-source-sustainability-do10.onrender.com/health`
-- `Demo Video`: [`Open Demo Video`](https://github.com/gauravgautam2003/SustaionOS-open-source-sustainability-monitoring-action-app/blob/main/demo.mp4?raw=1)
+- `Demo Video`: `Upload a public YouTube, Loom, Drive, or hosted link here`
 - `Local Demo File`: [`demo.mp4`](demo.mp4)
 
 ### Demo Video
 
-GitHub README does not play repository videos inline. Use the preview below to open the raw MP4 in your browser.
+The current local demo recording is about `180 MB`, which is too large for a reliable GitHub README video experience.
 
-[![Watch the SustainOS AI demo](screenshots/Dashboard.jpeg)](https://github.com/gauravgautam2003/SustaionOS-open-source-sustainability-monitoring-action-app/blob/main/demo.mp4?raw=1)
+For the final public README, upload a compressed demo to YouTube, Loom, Google Drive, or another public host, then replace the placeholder link above.
 
-Direct video file: [Open demo.mp4](https://github.com/gauravgautam2003/SustaionOS-open-source-sustainability-monitoring-action-app/blob/main/demo.mp4?raw=1)
+Preview frame:
+
+![SustainOS AI demo preview](screenshots/Dashboard.jpeg)
 
 Local file for IDE preview: [demo.mp4](demo.mp4)
 
@@ -582,6 +585,16 @@ npm test
 ```powershell
 .\hackathon-smoke-test.ps1 -FrontendUrl http://127.0.0.1:4173 -BackendUrl http://127.0.0.1:5000 -MlUrl http://127.0.0.1:8000
 ```
+
+## Development Timeline Proof
+
+The repository includes a documented development trail in [TIMELINE.md](TIMELINE.md), based on the Git commit history.
+
+Current tracked history snapshot:
+
+- commit activity from `2026-03-11` to `2026-03-31`
+- `94` commits in the current repository history
+- multiple contributors across product, documentation, security, and platform work
 
 ## Real-World Readiness
 
