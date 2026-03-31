@@ -10,7 +10,7 @@ SustainOS AI is a full-stack sustainability operations platform for smart buildi
 
 For judges and reviewers using the deployed app, start with [JUDGE_GUIDE.md](JUDGE_GUIDE.md).
 
-## flowchart LR
+  flowchart LR
   A[User / Sensors] --> B[React Frontend]
   B --> C[Node.js API]
   C --> D[(MongoDB)]
