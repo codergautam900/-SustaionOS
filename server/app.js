@@ -1,28 +1,64 @@
 const express = require("express");
 const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
 const { CLIENT_ORIGIN } = require("./config/env");
 const requestContext = require("./middleware/requestContext.middleware");
 const { buildHealthPayload } = require("./services/runtime.service");
 
 const app = express();
+app.set("trust proxy", 1);
 
 const allowedOrigins = String(CLIENT_ORIGIN || "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const isSameHostOrigin = (origin, req) => {
+  try {
+    const originUrl = new URL(origin);
+    return originUrl.host === req.get("host");
+  } catch {
+    return false;
+  }
+};
+
 app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
-        return callback(null, true);
-      }
-      return callback(new Error(`CORS blocked for origin: ${origin}`));
-    },
-    credentials: true, // allow cookies / credentialed requests and Authorization header
+  cors((req, callback) => {
+    const origin = req.header("Origin");
+    const isAllowed =
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      allowedOrigins.includes("*") ||
+      isSameHostOrigin(origin, req);
+
+    callback(null, {
+      origin: isAllowed,
+      credentials: true, // allow cookies / credentialed requests and Authorization header
+    });
   })
 );
+
+app.use((req, res, next) => {
+  const origin = req.header("Origin");
+  if (
+    origin &&
+    !allowedOrigins.includes(origin) &&
+    !allowedOrigins.includes("*") &&
+    !isSameHostOrigin(origin, req)
+  ) {
+    return next(new Error(`CORS blocked for origin: ${origin}`));
+  }
+
+  return next();
+});
+
+const clientDistPath = path.resolve(__dirname, "../Client/dist");
+const hasClientBuild = fs.existsSync(path.join(clientDistPath, "index.html"));
+
+if (hasClientBuild) {
+  app.use(express.static(clientDistPath));
+}
 
 app.use(requestContext);
 app.use(express.json());
@@ -114,6 +150,13 @@ app.use("/api", (req, res) => {
     path: req.originalUrl,
   });
 });
+
+if (hasClientBuild) {
+  app.use((req, res, next) => {
+    if (req.method !== "GET") return next();
+    return res.sendFile(path.join(clientDistPath, "index.html"));
+  });
+}
 
 app.use(require("./middleware/error.middleware"));
 

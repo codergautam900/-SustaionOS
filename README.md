@@ -273,7 +273,7 @@ project-root/
 - Database: MongoDB
 - ML: Python service
 - AI providers: Ollama by default, optional OpenAI and Gemini
-- Deployment: Render-ready backend and ML blueprint, static frontend compatible
+- Deployment: Render one-link app/API blueprint with a backend-managed ML service
 
 ## Demo
 
@@ -283,12 +283,11 @@ Put the final public app links in [JUDGE_GUIDE.md](JUDGE_GUIDE.md). Do not share
 
 ### Public Demo Links
 
-Current deployed links:
+After deploying the current Render Blueprint, share only the `sustainos-api` public URL as the app link:
 
-- `Live App`: `https://sustaionos-open-source-sustainability-ygcz.onrender.com`
-- `Live API Base`: `https://sustaionos-open-source-sustainability-ip3w.onrender.com`
-- `Live API Health`: `https://sustaionos-open-source-sustainability-ip3w.onrender.com/api/health`
-- `Live ML Health`: `https://sustaionos-open-source-sustainability-do10.onrender.com/health`
+- `Live App + API`: `https://your-sustainos-api.onrender.com`
+- `Live API Health`: `https://your-sustainos-api.onrender.com/api/health`
+- `Live ML Health`: `https://your-sustainos-ml.onrender.com/health`
 - `Public Demo Video`: `https://drive.google.com/file/d/1QeaWaJVBxswZLLNssw-h6udaJROwNeSH/view?usp=drivesdk`
 - `Demo Duration`: `~3 minutes`
 - `Video Host`: `Google Drive`
@@ -546,15 +545,17 @@ If you do not want external providers during judging, keep:
 
 ## Deployment
 
-This repository includes a Render blueprint in `render.yaml` for the backend and ML services.
+This repository includes a Render blueprint in `render.yaml` for a one-link deployment.
 
 Recommended production layout:
 
-- Frontend: Vercel, Netlify, or any static host
-- Backend: Render
-- ML service: Render
+- Public app/API: Render `sustainos-api`
+- Frontend build: generated from `Client/` and served by the Node/Express service
+- ML service: Render `sustainos-ml`, called by the backend
 - Database: MongoDB Atlas
-- Optional LLM: self-hosted Ollama or provider-based integration
+- Optional LLM: self-hosted Ollama tunnel or provider-based integration
+
+After deployment, share the `sustainos-api` Render URL as the app link. The same URL serves the React UI, `/api/*` routes, and Socket.IO.
 
 For public judge links, update [JUDGE_GUIDE.md](JUDGE_GUIDE.md).
 
