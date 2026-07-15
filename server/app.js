@@ -13,6 +13,7 @@ const allowedOrigins = String(CLIENT_ORIGIN || "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const allowAllOrigins = allowedOrigins.length === 0 || allowedOrigins.includes("*");
 
 const isSameHostOrigin = (origin, req) => {
   try {
@@ -28,30 +29,21 @@ app.use(
     const origin = req.header("Origin");
     const isAllowed =
       !origin ||
+      allowAllOrigins ||
       allowedOrigins.includes(origin) ||
-      allowedOrigins.includes("*") ||
       isSameHostOrigin(origin, req);
 
     callback(null, {
       origin: isAllowed,
       credentials: true, // allow cookies / credentialed requests and Authorization header
+      methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization", "x-api-key", "X-API-Key"],
+      optionsSuccessStatus: 204,
     });
   })
 );
 
-app.use((req, res, next) => {
-  const origin = req.header("Origin");
-  if (
-    origin &&
-    !allowedOrigins.includes(origin) &&
-    !allowedOrigins.includes("*") &&
-    !isSameHostOrigin(origin, req)
-  ) {
-    return next(new Error(`CORS blocked for origin: ${origin}`));
-  }
 
-  return next();
-});
 
 const clientDistPath = path.resolve(__dirname, "../Client/dist");
 const hasClientBuild = fs.existsSync(path.join(clientDistPath, "index.html"));
