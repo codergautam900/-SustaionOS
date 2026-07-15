@@ -1,11 +1,38 @@
-const resolveDefaultBase = () => {
-  if (import.meta.env.DEV) return "http://localhost:5000";
-  if (typeof window !== "undefined" && window.location?.origin) return window.location.origin;
+const trimSlash = (value = "") => String(value || "").replace(/\/$/, "");
+
+const getWindowOrigin = () => {
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return trimSlash(window.location.origin);
+  }
   return "";
 };
 
-const API_BASE = (import.meta.env.VITE_API_URL || resolveDefaultBase()).replace(/\/$/, "");
-const SOCKET_BASE = (import.meta.env.VITE_SOCKET_URL || API_BASE || resolveDefaultBase()).replace(/\/$/, "");
+const isRenderOneLinkHost = () => {
+  if (typeof window === "undefined") return false;
+  const hostname = String(window.location?.hostname || "").toLowerCase();
+  return hostname === "sustainos-api.onrender.com" || hostname.startsWith("sustainos-api-");
+};
+
+const resolveApiBase = () => {
+  const currentOrigin = getWindowOrigin();
+  const configuredBase = trimSlash(import.meta.env.VITE_API_URL || "");
+
+  if (import.meta.env.DEV) return configuredBase || "http://localhost:5000";
+  if (isRenderOneLinkHost() && currentOrigin) return currentOrigin;
+  return configuredBase || currentOrigin;
+};
+
+const resolveSocketBase = () => {
+  const currentOrigin = getWindowOrigin();
+  const configuredBase = trimSlash(import.meta.env.VITE_SOCKET_URL || "");
+
+  if (import.meta.env.DEV) return configuredBase || resolveApiBase();
+  if (isRenderOneLinkHost() && currentOrigin) return currentOrigin;
+  return configuredBase || resolveApiBase();
+};
+
+const API_BASE = resolveApiBase();
+const SOCKET_BASE = resolveSocketBase();
 
 export const getApiBase = () => API_BASE;
 export const getSocketBase = () => SOCKET_BASE;
